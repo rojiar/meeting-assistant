@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Audio Foundation Models for Acoustic Scene Classification</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root{
+    --bg:#0f1226; --bg2:#171a35; --ink:#eef1ff; --muted:#a8b0d8;
+    --accent:#6ee7d7; --accent2:#7c8cff; --card:#1d2142; --line:#2c3160;
+    --good:#4ade80;
+  }
+  html,body{ font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); }
+  .slide{
+    position:relative; width:1280px; height:720px; overflow:hidden;
+    background:linear-gradient(135deg,var(--bg) 0%,var(--bg2) 100%);
+    padding:64px 72px; page-break-after:always; display:flex; flex-direction:column;
+  }
+  .slide:last-child{ page-break-after:auto; }
+  .kicker{ color:var(--accent); font-weight:700; letter-spacing:.16em; text-transform:uppercase; font-size:15px; }
+  h1{ font-size:54px; line-height:1.08; font-weight:800; letter-spacing:-.5px; }
+  h2{ font-size:38px; font-weight:800; letter-spacing:-.3px; margin-bottom:6px; }
+  .sub{ color:var(--muted); font-size:20px; margin-top:14px; }
+  p,li{ font-size:21px; line-height:1.5; color:#dfe3ff; }
+  .muted{ color:var(--muted); }
+  .accent{ color:var(--accent); }
+  .accent2{ color:var(--accent2); }
+  .footer{ position:absolute; left:72px; right:72px; bottom:28px; display:flex; justify-content:space-between;
+           font-size:13px; color:#7a83b8; border-top:1px solid var(--line); padding-top:10px; }
+  .grid{ display:grid; gap:18px; margin-top:26px; }
+  .g2{ grid-template-columns:1fr 1fr; } .g3{ grid-template-columns:repeat(3,1fr); } .g4{ grid-template-columns:repeat(4,1fr); }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px 22px; }
+  .card h3{ font-size:22px; margin-bottom:8px; }
+  .emoji{ font-size:30px; }
+  table{ width:100%; border-collapse:collapse; margin-top:22px; font-size:20px; }
+  th,td{ text-align:left; padding:14px 16px; border-bottom:1px solid var(--line); }
+  th{ color:var(--accent); font-size:15px; letter-spacing:.08em; text-transform:uppercase; }
+  tr td:first-child{ font-weight:700; }
+  .pipe{ display:flex; align-items:center; gap:14px; margin-top:40px; flex-wrap:wrap; }
+  .box{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; text-align:center; flex:1; }
+  .box .t{ font-weight:800; font-size:20px; } .box .d{ color:var(--muted); font-size:15px; margin-top:6px; }
+  .arrow{ color:var(--accent); font-size:34px; font-weight:800; }
+  .pill{ display:inline-block; background:rgba(110,231,215,.12); color:var(--accent);
+         border:1px solid rgba(110,231,215,.4); border-radius:999px; padding:6px 16px; font-size:16px; font-weight:700; }
+  .center{ justify-content:center; align-items:center; text-align:center; }
+  ul{ margin-top:18px; padding-left:26px; } li{ margin:10px 0; }
+  code{ background:#0c0f22; border:1px solid var(--line); border-radius:8px; padding:2px 8px; font-size:18px; color:var(--accent); }
+  .codeblock{ background:#0a0d1e; border:1px solid var(--line); border-radius:14px; padding:20px 24px;
+              font-family:"Cascadia Code",Consolas,monospace; font-size:18px; color:#cdd3ff; margin-top:18px; white-space:pre; line-height:1.6; }
+  .hl{ color:var(--good); font-weight:800; }
+</style>
+</head>
+<body>
+
+<!-- 1. TITLE -->
+<section class="slide center">
+  <div class="kicker">Project 2 &middot; Audio Foundation Models</div>
+  <h1 style="margin-top:18px; max-width:1000px;">Audio Foundation Models for<br><span class="accent">Acoustic Scene Classification</span></h1>
+  <p class="sub" style="max-width:760px;">A minimal demo: load audio, extract a <b>WavLM</b> embedding, train a tiny classifier, predict the scene.</p>
+  <div style="margin-top:34px;"><span class="pill">Load audio &rarr; WavLM &rarr; classifier &rarr; prediction</span></div>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>1</span></div>
+</section>
+
+<!-- 2. THE TASK -->
+<section class="slide">
+  <div class="kicker">The Task</div>
+  <h2>What are we classifying?</h2>
+  <p class="sub">Given a short audio clip, predict the <b>acoustic scene</b> &mdash; the environment where it was recorded.</p>
+  <div class="grid g4">
+    <div class="card"><div class="emoji">&#127869;</div><h3>Restaurant</h3><p class="muted">cafe chatter, cutlery</p></div>
+    <div class="card"><div class="emoji">&#128739;</div><h3>Street</h3><p class="muted">traffic, crowds</p></div>
+    <div class="card"><div class="emoji">&#128187;</div><h3>Office</h3><p class="muted">keyboards, quiet talk</p></div>
+    <div class="card"><div class="emoji">&#128663;</div><h3>Car</h3><p class="muted">engine, road noise</p></div>
+  </div>
+  <p style="margin-top:30px;" class="muted">This is a classic <b>acoustic scene classification</b> problem &mdash; useful for context-aware apps, smart assistants, and robotics.</p>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>2</span></div>
+</section>
+
+<!-- 3. PIPELINE -->
+<section class="slide">
+  <div class="kicker">The Approach</div>
+  <h2>Foundation model + linear probe</h2>
+  <p class="sub">We do <b>not</b> train a deep network from scratch. WavLM is pre-trained on huge audio data, frozen, and used as a feature extractor.</p>
+  <div class="pipe">
+    <div class="box"><div class="t">Load audio</div><div class="d">16&nbsp;kHz mono</div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="box" style="border-color:var(--accent2)"><div class="t accent2">WavLM</div><div class="d">frozen encoder</div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="box"><div class="t">Embedding</div><div class="d">768 numbers</div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="box" style="border-color:var(--accent)"><div class="t accent">Classifier</div><div class="d">logistic regression</div></div>
+    <div class="arrow">&rarr;</div>
+    <div class="box"><div class="t">Prediction</div><div class="d">scene label</div></div>
+  </div>
+  <p style="margin-top:36px;"><span class="hl">Key idea:</span> the expensive model only runs forward passes; the part we train is tiny and fast.</p>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>3</span></div>
+</section>
+
+<!-- 4. WAVLM -->
+<section class="slide">
+  <div class="kicker">The Model</div>
+  <h2>WavLM from Hugging Face</h2>
+  <table>
+    <tr><th>What</th><th>Details</th></tr>
+    <tr><td>Model</td><td><code>microsoft/wavlm-base-plus</code></td></tr>
+    <tr><td>Type</td><td>Self-supervised speech/audio foundation model (Microsoft)</td></tr>
+    <tr><td>Input</td><td>Raw waveform at 16&nbsp;kHz</td></tr>
+    <tr><td>Output</td><td>Sequence of 768-dim frame vectors &rarr; mean-pooled to one vector per clip</td></tr>
+    <tr><td>Library</td><td><code>transformers</code> &mdash; one-line load with <code>WavLMModel</code></td></tr>
+  </table>
+  <p style="margin-top:28px;" class="muted"><b>HuBERT swap:</b> change repo to <code>facebook/hubert-base-ls960</code> and use <code>HubertModel</code> &mdash; same pipeline.</p>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>4</span></div>
+</section>
+
+<!-- 5. DATA -->
+<section class="slide">
+  <div class="kicker">The Data</div>
+  <h2>TUT Acoustic Scenes 2017 &mdash; from Hugging Face</h2>
+  <div class="grid g2" style="margin-top:24px;">
+    <div class="card">
+      <h3 class="accent">Dataset</h3>
+      <p class="muted"><code>MahiA/TUT2017</code> mirrors the TUT 2017 acoustic scenes benchmark.</p>
+      <p style="margin-top:12px;">Our labels map to dataset classes:</p>
+      <p style="margin-top:8px;">Restaurant &larr; <code>cafe/restaurant</code><br>
+         Street &larr; <code>city_center</code><br>
+         Office &larr; <code>office</code><br>
+         Car &larr; <code>car</code></p>
+    </div>
+    <div class="card">
+      <h3 class="accent">Lightweight download</h3>
+      <p class="muted">Full dataset is ~12&nbsp;GB. For the demo we:</p>
+      <ul style="margin-top:6px;">
+        <li>Download the label CSV (~few KB)</li>
+        <li>Pick ~20 clips per scene</li>
+        <li>Fetch <b>only those files</b> via <code>hf_hub_download</code></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>5</span></div>
+</section>
+
+<!-- 6. NOTEBOOK STEPS -->
+<section class="slide">
+  <div class="kicker">The Notebook</div>
+  <h2>Eight clear steps</h2>
+  <div class="grid g4" style="margin-top:22px;">
+    <div class="card"><h3 class="accent2">1</h3><p class="muted">Install dependencies</p></div>
+    <div class="card"><h3 class="accent2">2</h3><p class="muted">Configure scenes &amp; model</p></div>
+    <div class="card"><h3 class="accent2">3</h3><p class="muted">Download clips from HF</p></div>
+    <div class="card"><h3 class="accent2">4</h3><p class="muted">Load &amp; resample audio</p></div>
+    <div class="card"><h3 class="accent2">5</h3><p class="muted">Load WavLM + embed fn</p></div>
+    <div class="card"><h3 class="accent2">6</h3><p class="muted">Extract all embeddings</p></div>
+    <div class="card"><h3 class="accent2">7</h3><p class="muted">Train classifier + evaluate</p></div>
+    <div class="card"><h3 class="accent2">8</h3><p class="muted">Predict one clip</p></div>
+  </div>
+  <p style="margin-top:28px;">Notebook: <code>notebooks/audio-foundation-models/acoustic_scene_classification.ipynb</code></p>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>6</span></div>
+</section>
+
+<!-- 7. EMBEDDING -->
+<section class="slide">
+  <div class="kicker">How Embedding Works</div>
+  <h2>From waveform to vector</h2>
+  <div class="codeblock">inputs = feature_extractor(wav, sampling_rate=16000, return_tensors="pt")
+frames = wavlm(**inputs).last_hidden_state   # (1, time, 768)
+embedding = frames.mean(dim=1)               # mean-pool &rarr; (768,)</div>
+  <ul style="margin-top:24px;">
+    <li><code>AutoFeatureExtractor</code> converts the raw wave into model inputs.</li>
+    <li>WavLM outputs one hidden vector per time frame.</li>
+    <li><b>Mean-pooling</b> over time gives a single clip-level embedding.</li>
+    <li>Same embedding feeds both training and inference.</li>
+  </ul>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>7</span></div>
+</section>
+
+<!-- 8. CLASSIFIER -->
+<section class="slide">
+  <div class="kicker">The Classifier</div>
+  <h2>Linear probe with logistic regression</h2>
+  <div class="grid g2" style="margin-top:20px;">
+    <div class="card">
+      <h3 class="accent">Training</h3>
+      <ul>
+        <li>Standardize embeddings (<code>StandardScaler</code>)</li>
+        <li>Fit <code>LogisticRegression</code> on the embeddings</li>
+        <li>Split <b>by recording</b>, not randomly &mdash; avoids leakage</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 class="accent">Evaluation</h3>
+      <ul>
+        <li>Group-aware cross-validation</li>
+        <li>Every clip tested on an <b>unseen recording</b></li>
+        <li>Accuracy, report &amp; confusion matrix</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top:28px;" class="muted">With only ~80 clips, a frozen WavLM + linear head reaches <span class="hl">~91%</span> on held-out recordings &mdash; an honest score with no leakage.</p>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>8</span></div>
+</section>
+
+<!-- 9. INFERENCE -->
+<section class="slide">
+  <div class="kicker">Live Inference</div>
+  <h2>Predicting a new clip</h2>
+  <div class="codeblock">pred, proba = predict_scene("some_clip.wav")
+
+true scene : Office
+predicted  : <span style="color:#4ade80">Office</span>
+confidence : {'Office': '87.2%', 'Restaurant': '8.1%', ...}</div>
+  <p style="margin-top:24px;">The <code>predict_scene()</code> helper runs the full pipeline on any <code>.wav</code> file and returns the label plus per-class probabilities.</p>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>9</span></div>
+</section>
+
+<!-- 10. TAKEAWAYS -->
+<section class="slide">
+  <div class="kicker">Takeaways</div>
+  <h2>What this demo shows</h2>
+  <ul>
+    <li><span class="accent">Audio foundation models</span> (WavLM / HuBERT) make strong feature extractors out of the box.</li>
+    <li>A <span class="accent">linear probe</span> on frozen embeddings is enough for a working scene classifier.</li>
+    <li>Both <span class="accent">model and dataset</span> come from the Hugging Face Hub &mdash; no manual data prep.</li>
+    <li>The notebook is intentionally <span class="accent">simple and explained</span> &mdash; a clear teaching/demo artifact.</li>
+  </ul>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>10</span></div>
+</section>
+
+<!-- 11. NEXT STEPS -->
+<section class="slide">
+  <div class="kicker">Extensions</div>
+  <h2>How to go further</h2>
+  <div class="grid g2" style="margin-top:20px;">
+    <div class="card"><h3 class="accent">More data</h3><p class="muted">Increase <code>N_PER_CLASS</code> or download the full TUT dataset for higher accuracy.</p></div>
+    <div class="card"><h3 class="accent">Try HuBERT</h3><p class="muted">Swap the model repo and compare embeddings side by side.</p></div>
+    <div class="card"><h3 class="accent">Better pooling</h3><p class="muted">Use attention pooling or multi-window averaging instead of a single mean.</p></div>
+    <div class="card"><h3 class="accent">Fine-tune</h3><p class="muted">Unfreeze WavLM and train end-to-end for the best possible accuracy.</p></div>
+  </div>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>11</span></div>
+</section>
+
+<!-- 12. THANK YOU -->
+<section class="slide center">
+  <div class="kicker">Thank you</div>
+  <h1 style="margin-top:14px;">Questions?</h1>
+  <p class="sub" style="max-width:800px;">
+    Notebook: <code>acoustic_scene_classification.ipynb</code><br>
+    Slides: <code>acoustic-scene-classification.pdf</code><br>
+    Model: <code>microsoft/wavlm-base-plus</code> &middot; Data: <code>MahiA/TUT2017</code>
+  </p>
+  <div style="margin-top:30px;"><span class="pill">Run the notebook top to bottom</span></div>
+  <div class="footer"><span>Acoustic Scene Classification</span><span>12</span></div>
+</section>
+
+</body>
+</html>
