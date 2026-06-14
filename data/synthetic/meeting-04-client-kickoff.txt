@@ -1,0 +1,76 @@
+[۱۰:۰۰] مریم (مدیر محصول): جلسه kickoff با تیم فنی و نماینده کارفرما را شروع می‌کنیم. خروجی امروز: scope فاز اول، تاریخ دمو، مسئولیت‌ها، و ریسک‌های اصلی.
+[۱۰:۰۱] کامبیز (نماینده مشتری): از طرف سازمان ما، اولویت این است که بعد هر جلسه داخلی، خلاصه و تسک‌ها ظرف همان روز در Jira ما ثبت شود. الان این کار دستی است و خیلی وقت می‌گیرد.
+[۱۰:۰۲] امیر (Tech Lead): MVP فعلی دقیقاً همین مسیر را پوشش می‌دهد: transcript یا فایل صوتی → تحلیل → تسک → preview و create در Jira Cloud.
+[۱۰:۰۳] لیلا (UX): برای کاربر غیرفنی، صفحه خانه باید سه مسیر واضح داشته باشد: چسباندن متن، آپلود فایل، و ضبط/آپلود صوت. در دمو قبلی بعضی کاربران گم شدند.
+[۱۰:۰۴] نازنین (QA): من می‌خواهم قبل از تعهد به تاریخ، acceptance criteria را بنویسیم. «کار می‌کند» برای enterprise کافی نیست؛ باید خطا، RTL، و Jira را هم پوشش دهیم.
+[۱۰:۰۵] آرمان (حقوقی): قبل از پردازش صوت جلسات داخلی مشتری، باید retention و محل ذخیره‌سازی روشن باشد. transcript روی سرور شما می‌ماند یا فقط موقت است؟
+[۱۰:۰۶] امیر: در MVP داده در SQLite محلی و Chroma embedded روی همان سرور نصب‌شده می‌ماند. migration به Postgres و policy retention در roadmap است.
+[۱۰:۰۷] آرمان: پس در قرارداد فاز یک باید بنویسیم «داده در محیط نصب مشتری» یا «SaaS با region مشخص». فعلاً on-prem demo قابل قبول است.
+[۱۰:۰۸] کامبیز: برای pilot، on-prem روی VM ما کافی است. اما اگر API key Gemini از حساب ما باشد، billing و quota باید شفاف باشد.
+[۱۰:۰۹] مریم: تصمیم: pilot با deploy روی VM مشتری و API key اختصاصی آن‌ها. ما فقط image و docs می‌دهیم.
+[۱۰:۱۰] امیر: task من: docker-compose نمونه و checklist نصب تا پنجشنبه آماده شود.
+[۱۰:۱۱] کامبیز: درباره زبان، جلسات ما فارسی است. آیا summary و task هم فارسی می‌ماند و فقط Jira انگلیسی است؟
+[۱۰:۱۲] مریم: بله. UI و خلاصه فارسی RTL؛ issue در Jira برای خوانایی LTR به انگلیسی می‌رود. این را در demo نشان می‌دهیم.
+[۱۰:۱۳] لیلا: یک mockup کوچک از صفحه Jira preview هم در slides بگذاریم تا مدیران IT نگران encoding نشوند.
+[۱۰:۱۴] نازنین: من test می‌نویسم که title_en و context_en واقعاً انگلیسی باشند و کاراکتر فارسی در issue نرود.
+[۱۰:۱۵] کامبیز: feature دوم که برای ما مهم است «پرسش از همان جلسه» است. مدیر پروژه می‌پرسد «deadline دمو چه روزی بود؟» و باید از transcript جواب بدهد.
+[۱۰:۱۶] امیر: RAG تک‌جلسه‌ای با Chroma و gemini-embedding-001 پیاده شده. small talk مثل hello بدون جستجو پاسخ داده می‌شود.
+[۱۰:۱۷] کامبیز: citation مهم است. اگر بگوید «علی گفت پنجشنبه» ولی در transcript نباشد، اعتماد از بین می‌رود.
+[۱۰:۱۸] نازنین: دقیقاً. regression citation با chunk ۳ turn در حال fix است. تا دمو باید green باشد.
+[۱۰:۱۹] مریم: تصمیم: دمو عمومی فقط اگر RAG citation bug تا سه‌شنبه بسته شود.
+[۱۰:۲۰] لیلا: tab «پرسش از جلسه» باید مثال سوال آماده داشته باشد تا کارفرما بداند چه بپرسد.
+[۱۰:۲۱] کامبیز: مثال خوب: «چه blockerهایی برای release گفته شد؟» و «چه taskهایی به علی داده شد؟»
+[۱۰:۲۲] امیر: می‌توانیم در frontend برای جلسات sample suggestion chips بگذاریم. low effort، high demo value.
+[۱۰:۲۳] مریم: task لیلا: suggestion chips برای tab RAG تا دوشنبه.
+[۱۰:۲۴] کامبیز: صوت هم لازم داریم. مدیران جلسه را ضبط می‌کنند و نمی‌خواهند دستی تایپ کنند.
+[۱۰:۲۵] امیر: POST /api/transcribe با Gemini همان key است. limit ۲۰MB. برای جلسه یک ساعته شاید کافی نباشد؛ باید expectation را مدیریت کنیم.
+[۱۰:۲۶] آرمان: اگر فایل صوت شامل مکالمات محرمانه است، upload به cloud Gemini نیاز به تأیید policy دارد.
+[۱۰:۲۷] مریم: در pilot، فقط جلسات غیرمحرمانه policy. disclaimer در UI قبل از upload.
+[۱۰:۲۸] لیلا: task من: متن disclaimer کوتاه فارسی زیر دکمه ضبط/آپلود.
+[۱۰:۲۹] نازنین: smoke test voice با فایل ۳۰ ثانیه‌ای کافی است؛ full hour audio در scope pilot نیست.
+[۱۰:۳۰] کامبیز: feature سوم: داشبورد تسک‌ها از چند جلسه. الان فقط یک جلسه را می‌بینیم؟
+[۱۰:۳۱] امیر: صفحه /tasks cross-meeting دارد با فیلتر open_only. multi-meeting RAG در Sprint 2 است.
+[۱۰:۳۲] کامبیز: برای pilot فاز یک، dashboard tasks کافی است. RAG چندجلسه nice-to-have است.
+[۱۰:۳۳] مریم: تصمیم: commit دمو pilot = ingest + summary + tasks + RAG تک‌جلسه + Jira + tasks dashboard + voice کوتاه.
+[۱۰:۳۴] آرمان: SOW فاز یک را همین لیست می‌گذارم. Confluence، sentiment، و alignment قرارداد در فاز دو.
+[۱۰:۳۵] کامبیز: درباره alignment با قرارداد، حتی اگر feature نیست، narrative مهم است. یک بار در جلسه داخلی گفتند «analytics کامل هم می‌آید» ولی در SOW نیست.
+[۱۰:۳۶] آرمان: اگر alignment_agent داشتیم، همان جلسه flag می‌کرد out_of_scope. تا آن زمان، PM باید دستی یادداشت کند.
+[۱۰:۳۷] مریم: task آرمان: یک صفحه SOW نمونه ۲ صفحه‌ای برای docs future بنویسد تا demo narrative alignment روشن شود.
+[۱۰:۳۸] لیلا: facilitation guide که در محصول هست عالی است. بعد kickoff ما می‌خواهیم بدانیم جلسه طولانی بود یا تصمیم کم داشت.
+[۱۰:۳۹] امیر: GET /api/meetings/{id}/facilitation الان کار می‌کند. از speaker stats و تعداد decisions استفاده می‌کند.
+[۱۰:۴۰] کامبیز: لحن coaching خوب است. در enterprise اگر مثل گزارش عملکرد افراد باشد، reject می‌کنیم.
+[۱۰:۴۱] مریم: موافقم. فقط برای facilitator، نه HR. در docs هم ethics را نوشته‌ایم.
+[۱۰:۴۲] نازنین: test facilitation را داریم؛ live test با Gemini هم هست. برای pilot باید billing key پایدار باشد.
+[۱۰:۴۳] امیر: map خطای 403 billing به فارسی انجام شده. اگر quota تمام شود، پیام راهنما نشان می‌دهیم.
+[۱۰:۴۴] کامبیز: تاریخ دمو را مشخص کنیم. مدیرعامل ما پنجشنبه هفته بعد فقط ۳۰ دقیقه وقت دارد.
+[۱۰:۴۵] مریم: پس deadline دمو: پنجشنبه ۱۴۰۵/۰۳/۲۳ ساعت ۱۰. rehearsal داخلی چهارشنبه بعدازظهر.
+[۱۰:۴۶] لیلا: task من: اسلاید ۸ صفحه‌ای با screenshot UI و یک flow end-to-end تا چهارشنبه.
+[۱۰:۴۷] امیر: task من: deploy روی VM pilot + health check + backup SQLite تا چهارشنبه صبح.
+[۱۰:۴۸] نازنین: task من: checklist تست دستی ۱۵ موردی + اجرای live tests تا چهارشنبه.
+[۱۰:۴۹] کامبیز: task من: تهیه transcript واقعی anonymized یک جلسه داخلی برای ingest تست — اگر policy اجازه دهد.
+[۱۰:۵۰] آرمان: اگر transcript واقعی بیاورید، قبل از ingest باید نام افراد mask شود.
+[۱۰:۵۱] مریم: تصمیم: برای دمو از synthetic meetings استفاده می‌کنیم مگر anonymized real تأیید شود.
+[۱۰:۵۲] امیر: synthetic الان چهار فایل داریم: scrum، planning، review، kickoff. kickoff امروز اضافه می‌شود.
+[۱۰:۵۳] لیلا: kickoff برای demo narrative مشتری عالی است چون شبیه همین جلسه است.
+[۱۰:۵۴] نازنین: risk: latency Gemini در VM ضعیف مشتری. باید timeout و loading message تست شود.
+[۱۰:۵۵] امیر: loading message «تحلیل با Gemini، تا یک دقیقه» در backlog است؛ برای pilot حیاتی است.
+[۱۰:۵۶] مریم: task امیر: loading message قبل از rehearsal حتماً باشد — priority بالا.
+[۱۰:۵۷] کامبیز: assignee در Jira هنوز دستی است؟
+[۱۰:۵۸] امیر: speaker map در settings scaffold شده. Sprint 3 کامل می‌شود. pilot بدون auto assignee OK است.
+[۱۰:۵۹] مریم: Jira project key برای pilot همان KAN تست ماست؛ مشتری project خودش را در فاز بعد می‌دهد.
+[۱۱:۰۰] کامبیز: security: آیا API بدون auth است؟
+[۱۱:۰۱] امیر: بله در MVP. auth در Sprint 4. pilot فقط روی VPN داخلی مشتری expose می‌شود.
+[۱۱:۰۲] آرمان: در minutes جلسه بنویسید MVP بدون auth است و exposure فقط intranet pilot.
+[۱۱:۰۳] مریم: parking lot: SSO، multi-tenant، Postgres — فعلاً بحث نمی‌کنیم.
+[۱۱:۰۴] لیلا: parking lot: dark mode — درخواست تیم IT مشتری بود، scope نیست.
+[۱۱:۰۵] نازنین: parking lot: export PDF صورتجلسه — Sprint 2.
+[۱۱:۰۶] مریم: جمع‌بندی: scope pilot مشخص، دمو پنجشنبه ۲۳، rehearsal چهارشنبه، همه taskها در Jira KAN.
+[۱۱:۰۷] کامبیز: از side مشتری، من تا فردا policy صوت را confirm می‌کنم و SOW draft را می‌فرستم.
+[۱۱:۰۸] مریم: action item کامبیز: تأیید policy صوت تا فردا ۱۲.
+[۱۱:۰۹] مریم: action item امیر: docker-compose + loading message تا چهارشنبه.
+[۱۱:۱۰] مریم: action item لیلا: slides + disclaimer UI تا چهارشنبه.
+[۱۱:۱۱] مریم: action item نازنین: checklist تست تا چهارشنبه.
+[۱۱:۱۲] مریم: action item آرمان: SOW نمونه docs تا دوشنبه.
+[۱۱:۱۳] مریم: جلسه تمام. صورتجلسه را با همین دستیار از transcript همین جلسه هم می‌توانیم بعداً تست کنیم.
+[۱۱:۱۴] امیر: meta است: ingest این فایل kickoff بعد از جلسه، sanity check خوبی است.
+[۱۱:۱۵] کامبیز: موافقم. اگر summary deadline پنجشنبه را درست بگیرد، به مدیرعامل اعتماد می‌کنم.

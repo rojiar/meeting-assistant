@@ -1,0 +1,14 @@
+{
+  "name": "meeting-assistant-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "diagrams": "node ../scripts/render-doc-diagrams.mjs",
+    "pdf": "node ../scripts/html-to-pdf.mjs",
+    "export": "npm run diagrams && npm run pdf"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.2",
+    "playwright": "^1.49.1"
+  }
+}

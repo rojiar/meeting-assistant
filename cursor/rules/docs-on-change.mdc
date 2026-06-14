@@ -1,0 +1,23 @@
+---
+description: Keep the Persian HTML docs and CHANGELOG in sync when code or architecture changes
+alwaysApply: true
+---
+
+# Documentation on change
+
+When you change backend, frontend, agents, vector store, Jira, or env:
+
+1. Add or update **unit tests** (`backend/tests/`) and **live tests** (`test_live_integration.py`, `test_live_api.py`) for the change.
+2. Run `./scripts/run-tests.sh` and `./scripts/run-live-tests.sh` (or `./scripts/run-all-tests.sh`) before claiming done.
+3. Add one line to `docs/CHANGELOG.md` (date + short Persian summary).
+4. Update the relevant section in:
+   - `docs/02-implementation.html` (technical detail)
+   - `docs/01-project-overview.html` (product/architecture, AI-native framing)
+   - `docs/03-roadmap-and-future-work.html` (roadmap, advanced features, MLOps)
+   - `docs/superpowers/specs/2026-05-26-meeting-assistant-design.md` (engineering spec)
+5. After HTML changes run `./scripts/export-docs.sh` to refresh `docs/pdf/` and `docs/diagrams/`.
+6. Update root `README.md` if run commands, test counts, or stack change.
+
+Do not leave outdated references (e.g. `data/vectors/`, `text-embedding-004`, JSON vector store, the old Persian HTML doc filenames).
+
+Current stack facts: SQLite (`data/meetings.db`), ChromaDB (`data/chroma/`), `gemini-embedding-001`, smart RAG (small-talk skip), Jira issues in English, Astro SSR meeting page, 150 unit + 13 live tests (`test_live_api.py` + `test_live_integration.py`). Project docs are the 3 Persian files `docs/01-project-overview.html`, `docs/02-implementation.html`, `docs/03-roadmap-and-future-work.html`.

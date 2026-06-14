@@ -1,0 +1,13 @@
+flowchart TD
+    MVP["Sprint 1 MVP"]
+    M["SQLite + Chroma"]
+    R2["RAG چندجلسه"]
+    J3["نگاشت assignee Jira"]
+    A4["Auth / org"]
+    P5["Postgres + deploy"]
+    MVP --> M
+    M --> R2
+    M --> J3
+    R2 --> A4
+    J3 --> A4
+    A4 --> P5

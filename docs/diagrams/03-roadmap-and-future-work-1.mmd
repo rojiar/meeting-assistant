@@ -1,0 +1,12 @@
+flowchart LR
+    subgraph agents ["عامل‌های پیشنهادی"]
+        A1["analysis_agent"]
+        A2["rag_agent"]
+        A3["jira_agent"]
+        A4["facilitation_agent<br/>راهنمای برگزارکننده"]
+        A5["alignment_agent<br/>SOW / قرارداد"]
+        A6["sentiment_agent<br/>لحن گویندگان"]
+        A7["review_agent"]
+        O["orchestrator"]
+    end
+    O --> A1 & A2 & A3 & A4 & A5 & A6 & A7

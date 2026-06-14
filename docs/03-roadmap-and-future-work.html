@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meeting Assistant — Roadmap &amp; Future Work</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --text: #1a1a1a; --muted: #555; --border: #ddd; --bg: #fafafa; --accent: #7c3aed; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; direction: ltr; text-align: left; line-height: 1.75; color: var(--text); max-width: 960px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; background: #fff; }
+    h1 { font-size: 1.95rem; border-bottom: 3px solid var(--accent); padding-bottom: 0.6rem; line-height: 1.5; }
+    h2 { font-size: 1.4rem; margin-top: 2.75rem; color: #5b21b6; border-left: 4px solid var(--accent); padding-left: 0.6rem; }
+    h3 { font-size: 1.13rem; margin-top: 1.75rem; color: #1f2937; }
+    h4 { font-size: 1.02rem; margin-top: 1.25rem; color: #374151; }
+    p, li { font-size: 1.02rem; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.96rem; }
+    th, td { border: 1px solid var(--border); padding: 0.55rem 0.8rem; text-align: left; vertical-align: top; }
+    th { background: var(--bg); }
+    code, pre, .mermaid-wrap { direction: ltr; text-align: left; unicode-bidi: embed; }
+    code { background: #f3e8ff; padding: 0.12rem 0.4rem; border-radius: 4px; font-size: 0.88em; }
+    pre { background: #f5f5f5; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; }
+    .mermaid-wrap { margin: 1.5rem 0; padding: 1rem; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+    .note { background: #f5f3ff; border-left: 4px solid var(--accent); padding: 1rem 1.2rem; margin: 1.2rem 0; border-radius: 0 8px 8px 0; }
+    .warn { background: #fef2f2; border-left: 4px solid #dc2626; padding: 1rem 1.2rem; margin: 1.2rem 0; border-radius: 0 8px 8px 0; }
+    .guide { background: #ecfdf5; border-left: 4px solid #059669; padding: 1rem 1.25rem; margin: 1.2rem 0; border-radius: 0 8px 8px 0; }
+    .out { background: #fef2f2; border-left: 4px solid #dc2626; padding: 0.75rem 1rem; margin: 1.2rem 0; font-size: 0.92rem; border-radius: 0 8px 8px 0; }
+    .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+    .lang-link { margin-bottom: 1rem; font-size: 0.92rem; }
+    nav.toc { background: var(--bg); padding: 1rem 1.4rem; border-radius: 8px; margin: 1.5rem 0 2.5rem; border: 1px solid var(--border); }
+    nav.toc ol { margin: 0.3rem 0; padding-left: 1.4rem; }
+    nav.toc a { color: #2563eb; }
+    ul.checklist { list-style: none; padding-left: 0.2rem; }
+    ul.checklist li::before { content: "\2610  "; color: var(--accent); font-weight: bold; }
+  </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+  </script>
+</head>
+<body>
+
+<h1>Meeting Assistant<br>Roadmap &amp; Future Work</h1>
+<p class="meta">
+  Document 3 of 3 · Product roadmap, advanced capabilities, and research directions ·
+  <a href="01-project-overview.html">Project overview</a> ·
+  <a href="02-implementation.html">Implementation</a> ·
+  <a href="../CHANGELOG.md">CHANGELOG</a>
+</p>
+
+<p>
+  This document gathers everything that comes <em>after</em> the MVP: the product roadmap by sprint, three advanced
+  differentiating capabilities (facilitator guide, document alignment, sentiment analysis), the operational quality
+  cycle (MLOps), and a set of longer-horizon research ideas. It complements the "future ideas" in
+  <a href="01-project-overview.html">Document 1</a> (vision) and <a href="02-implementation.html">Document 2</a>
+  (current system).
+</p>
+
+<div class="note">
+  <strong>Status guide.</strong> Sprint 1 (the MVP) is complete. Among advanced capabilities,
+  <strong>facilitator guide</strong> is already implemented
+  (<code>GET /api/meetings/{id}/facilitation</code>); document alignment and sentiment analysis are designed but
+  not yet built.
+</div>
+
+<div class="out">
+  <strong>Permanently out of scope:</strong> Live streaming transcription during meetings and professional speaker
+  diarization. Single-pass Gemini transcription from uploaded/recorded audio covers product needs without a separate
+  STT pipeline.
+</div>
+
+<nav class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#overview">1. Roadmap at a Glance</a></li>
+    <li><a href="#s2">2. Sprint 2 — Archive &amp; Organizational Search</a></li>
+    <li><a href="#s3">3. Sprint 3 — Jira &amp; Operational Workflow</a></li>
+    <li><a href="#s4">4. Sprint 4 — Users, Workspaces &amp; Calendar</a></li>
+    <li><a href="#s5">5. Sprint 5 — Scale, Quality &amp; Deployment</a></li>
+    <li><a href="#s6">6. Sprint 6+ — Organizational Intelligence Product</a></li>
+    <li><a href="#adv">7. Advanced Capabilities (Differentiators)</a>
+      <ol>
+        <li><a href="#adv-fac">Facilitator Guide</a></li>
+        <li><a href="#adv-align">SOW / Contract Alignment</a></li>
+        <li><a href="#adv-sent">Sentiment Analysis</a></li>
+      </ol>
+    </li>
+    <li><a href="#mlops">8. MLOps &amp; Quality Cycle</a></li>
+    <li><a href="#priorities">9. Prioritization</a></li>
+    <li><a href="#deps">10. Technical Dependencies</a></li>
+    <li><a href="#research">11. Longer-Horizon Research Ideas</a></li>
+  </ol>
+</nav>
+
+<h2 id="overview">1. Roadmap at a Glance</h2>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart TB
+    S1["Sprint 1 ✅<br/>دموی MVP"]
+    S2["Sprint 2<br/>آرشیو و RAG چندجلسه"]
+    S3["Sprint 3<br/>Jira هوشمند و یکپارچه‌سازی"]
+    S4["Sprint 4<br/>کاربران و سازمان"]
+    S5["Sprint 5<br/>مقیاس و استقرار"]
+    S6["Sprint 6+<br/>هوش چندعامله"]
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6
+</pre>
+</div>
+<p>
+  The roadmap arc is deliberate: from one meeting (MVP) to organizational meeting memory (Sprint 2), to real
+  operational workflow (Sprint 3), to a truly multi-tenant product (Sprints 4 and 5), and finally to
+  differentiated multi-agent intelligence (Sprint 6+).
+</p>
+
+<h2 id="s2">2. Sprint 2 — Archive &amp; Organizational Search</h2>
+<p><strong>Goal:</strong> Move from "one meeting" to "organizational meeting memory."</p>
+<table>
+  <tr><th>Capability</th><th>Description</th><th>Proposed implementation</th></tr>
+  <tr><td>Multi-meeting RAG</td><td>Query across meetings with date, project, participant filters.</td><td>Chroma metadata: <code>org_id</code>, <code>project</code>, <code>date</code>; filter in query.</td></tr>
+  <tr><td>Archive page</td><td>Meeting list with full-text search on title/summary.</td><td>SQLite FTS5 on <code>title</code>, <code>summary</code>.</td></tr>
+  <tr><td>Tags &amp; project</td><td>Categorize meetings (standup, planning, review).</td><td><code>tags</code>, <code>project_key</code> columns in SQLite.</td></tr>
+  <tr><td>Summary export</td><td>Export to Markdown / PDF for sharing with managers.</td><td>Astro template or WeasyPrint from same <code>MeetingAnalysis</code>.</td></tr>
+  <tr><td>Meeting comparison</td><td>"Last sprint's decisions vs now" — agent over multiple meeting_ids.</td><td><code>compare_agent</code> + top-k from each meeting.</td></tr>
+</table>
+<h3>Acceptance criteria</h3>
+<ul>
+  <li>Three meetings ingested; one cross-meeting question with citations from at least two meetings.</li>
+  <li>Archive search under 500ms (up to ~100 meetings).</li>
+  <li>Export one meeting summary without RTL errors.</li>
+</ul>
+
+<h2 id="s3">3. Sprint 3 — Jira &amp; Operational Workflow</h2>
+<p><strong>Goal:</strong> Tasks actually reach the right people in Jira, not anonymous issues.</p>
+<table>
+  <tr><th>Capability</th><th>Description</th><th>Technical</th></tr>
+  <tr><td>Assignee mapping</td><td>"Sara" in transcript &larr; one <code>accountId</code> in Jira.</td><td><code>speaker_jira_map</code> table; settings UI (ready).</td></tr>
+  <tr><td><code>jira_agent</code></td><td>Preview, deduplication, epic/link suggestions.</td><td>Pydantic AI tools: <code>search_existing_issues</code>, <code>preview_create</code>.</td></tr>
+  <tr><td>Jira OAuth</td><td>Replace personal token — team-friendly.</td><td>Atlassian OAuth 2.0; encrypted refresh token storage.</td></tr>
+  <tr><td>Edit before submit</td><td>User edits tasks in UI, then bulk create.</td><td>Temporary state; POST only after confirmation.</td></tr>
+  <tr><td>Sync status</td><td>Show issue key and Jira link on meeting page.</td><td><code>jira_keys_json</code> per task.</td></tr>
+  <tr><td>Issue template</td><td>Custom project fields (story points, component).</td><td>Map from <code>JIRA_PROJECT_KEY</code> + YAML config.</td></tr>
+</table>
+
+<h2 id="s4">4. Sprint 4 — Users, Workspaces &amp; Calendar</h2>
+<p><strong>Goal:</strong> Real multi-user product and connection to everyday tools.</p>
+<table>
+  <tr><th>Capability</th><th>Description</th><th>Technical</th></tr>
+  <tr><td>Authentication</td><td>Email/password or org SSO login.</td><td>JWT session; or OIDC (Keycloak / Google Workspace).</td></tr>
+  <tr><td>Workspace</td><td>Each org's data isolated — meetings, speaker map, Jira.</td><td><code>org_id</code> on all tables; tenancy middleware.</td></tr>
+  <tr><td>Roles (RBAC)</td><td>admin · editor · viewer — who can Jira create.</td><td><code>memberships</code> table.</td></tr>
+  <tr><td>Calendar (metadata)</td><td>Import title/time/attendees from Google Calendar — transcript still paste/upload.</td><td>Calendar API read-only; pre-fill meeting form.</td></tr>
+  <tr><td>Summary email</td><td>Auto-send summary + meeting link to participants.</td><td>SMTP or Resend/Cloudflare Email; RTL HTML template.</td></tr>
+  <tr><td>Slack/Teams alerts</td><td>Short message: N new tasks + link.</td><td>Incoming webhook.</td></tr>
+</table>
+
+<h2 id="s5">5. Sprint 5 — Scale, Quality &amp; Deployment</h2>
+<p><strong>Goal:</strong> Ready for organizational demo and production monitoring.</p>
+<table>
+  <tr><th>Capability</th><th>Description</th><th>Technical</th></tr>
+  <tr><td>PostgreSQL</td><td>Replace SQLite for multi-worker and backup.</td><td>SQLAlchemy + Alembic migration from current schema.</td></tr>
+  <tr><td>Vector at scale</td><td>Thousands of chunks without slowdown.</td><td>pgvector or Chroma Cloud; retention policy.</td></tr>
+  <tr><td>Ingest queue</td><td>Long meeting analysis in background.</td><td>Redis + worker (Celery / ARQ); status polling in UI.</td></tr>
+  <tr><td>Observability</td><td>Track Gemini latency and Jira errors.</td><td>OpenTelemetry + structured logs; one dashboard.</td></tr>
+  <tr><td>Deployment</td><td>Docker Compose; optional Cloud Run / VPS.</td><td>frontend + API + Postgres in one compose.</td></tr>
+  <tr><td>Eval &amp; prompts</td><td>Golden transcript set; summary quality regression.</td><td>pytest + LLM-judge score or human rubric.</td></tr>
+  <tr><td>Rate limiting</td><td>Prevent API abuse.</td><td>Rate limit per org; embedding cache.</td></tr>
+</table>
+
+<h2 id="s6">6. Sprint 6+ — Organizational Intelligence Product</h2>
+<p><strong>Goal:</strong> Competitive differentiation — beyond "summary + Jira."</p>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart LR
+    subgraph agents ["عامل‌های پیشنهادی"]
+        A1["analysis_agent"]
+        A2["rag_agent"]
+        A3["jira_agent"]
+        A4["facilitation_agent<br/>راهنمای برگزارکننده"]
+        A5["alignment_agent<br/>SOW / قرارداد"]
+        A6["sentiment_agent<br/>لحن گویندگان"]
+        A7["review_agent"]
+        O["orchestrator"]
+    end
+    O --> A1 & A2 & A3 & A4 & A5 & A6 & A7
+</pre>
+</div>
+<table>
+  <tr><th>Idea</th><th>Value</th></tr>
+  <tr><td>Decision tracking</td><td>Follow decisions across meetings — "Was decision X executed?"</td></tr>
+  <tr><td>Action items dashboard</td><td>All open tasks from all meetings, filter by assignee.</td></tr>
+  <tr><td>Meeting templates</td><td>Prompts tailored to standup / retro / planning.</td></tr>
+  <tr><td>Participation analysis</td><td>Talk ratio per speaker; one-sided meeting alerts.</td></tr>
+  <tr><td>Decision conflict</td><td>Agent comparing new meeting against prior decisions.</td></tr>
+  <tr><td>Follow-up suggestions</td><td>Auto-draft next agenda from open tasks.</td></tr>
+  <tr><td>Confluence / Notion</td><td>Publish minutes to org wiki.</td></tr>
+  <tr><td>Analysis versioning</td><td>Human edits on summary; re-run only part of pipeline.</td></tr>
+  <tr><td>Privacy</td><td>PII masking · retention · GDPR export.</td></tr>
+  <tr><td>On-prem</td><td>In-network deployment; optional self-hosted model.</td></tr>
+</table>
+
+<h2 id="adv">7. Advanced Capabilities (Differentiators)</h2>
+<p>
+  Three capabilities turn the assistant from a note-taker into a meeting intelligence product. Each adds a new
+  agent and, where needed, a new input.
+</p>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart TB
+    subgraph input ["ورودی‌های جدید"]
+        T["Transcript جلسه"]
+        D["اسناد: SOW · قرارداد · PDF"]
+    end
+    subgraph agents ["عامل‌های پیشنهادی"]
+        F["facilitation_agent<br/>راهنمای برگزارکننده"]
+        A["alignment_agent<br/>هم‌راستایی با scope"]
+        S["sentiment_agent<br/>تحلیل لحن گویندگان"]
+    end
+    subgraph output ["خروجی برای سازمان"]
+        G["چک‌لیست جلسه بهتر"]
+        R["گزارش in-scope / out-of-scope"]
+        M["نقشه احساسات · هشدار ریسک"]
+    end
+    T --> F & S
+    T --> A
+    D --> A
+    F --> G
+    A --> R
+    S --> M
+</pre>
+</div>
+
+<h3 id="adv-fac">7.1 Facilitator Guide <em>(implemented)</em></h3>
+<p>
+  After each meeting analysis, the system gives the <strong>facilitator</strong> practical, coaching-style
+  suggestions: what went well, where time was wasted, and how to run the next session shorter and more effectively.
+</p>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+sequenceDiagram
+    participant O as برگزارکننده
+    participant UI as Astro
+    participant API as FastAPI
+    participant FA as facilitation_agent
+    participant ST as آمار مشارکت
+
+    O->>UI: پایان جلسه · ingest
+    API->>ST: speaker stats · مدت · تعداد تصمیم/تسک
+    API->>FA: transcript + stats + نوع جلسه
+    FA-->>UI: FacilitationReport
+    UI-->>O: راهنمای فارسی + چک‌لیست جلسه بعد
+</pre>
+</div>
+<h4>Manual checklist (today — without AI)</h4>
+<div class="guide">
+  <p><strong>Before the meeting</strong></p>
+  <ul class="checklist">
+    <li>Define a one-line goal and expected output (decision / task / information).</li>
+    <li>Send agenda with approximate time per item (timebox).</li>
+    <li>Invite only essential people — each person's role should be clear.</li>
+    <li>Have reference documents (SOW, contract) available in advance.</li>
+  </ul>
+  <p><strong>During the meeting</strong></p>
+  <ul class="checklist">
+    <li>State decisions with "We decided that…" and name the owner.</li>
+    <li>Park off-topic discussions in a "parking lot."</li>
+    <li>Every 15–20 minutes, give a 30-second progress recap.</li>
+  </ul>
+  <p><strong>After the meeting</strong></p>
+  <ul class="checklist">
+    <li>Publish summary + tasks within 24 hours.</li>
+    <li>Schedule follow-up only if open tasks remain.</li>
+  </ul>
+</div>
+<h4>FacilitationReport output</h4>
+<table>
+  <tr><th>Field</th><th>Description</th></tr>
+  <tr><td><code>what_went_well</code></td><td>2–3 positives (e.g. clear decisions, balanced participation).</td></tr>
+  <tr><td><code>improvements</code></td><td>Specific suggestion (e.g. "Section X took 40% of time without a decision").</td></tr>
+  <tr><td><code>next_meeting_agenda</code></td><td>Draft agenda for next meeting from open tasks.</td></tr>
+  <tr><td><code>timebox_suggestion</code></td><td>Shorter duration or different format (e.g. async update).</td></tr>
+  <tr><td><code>coaching_summary</code></td><td>Short, encouraging summary for the facilitator.</td></tr>
+  <tr><td><code>facilitator_score</code></td><td>Optional 1–5 score based on rubric.</td></tr>
+</table>
+<p><strong>API:</strong> <code>GET /api/meetings/{id}/facilitation</code> — implemented, with "Meeting guide" tab in UI.</p>
+
+<h3 id="adv-align">7.2 SOW / Contract Alignment <em>(planned)</em></h3>
+<p>
+  The organization can upload a <strong>Statement of Work</strong>, contract, or RFP. After each meeting,
+  <code>alignment_agent</code> compares meeting decisions and commitments against document clauses and labels each
+  item <strong>in-scope</strong>, <strong>out-of-scope</strong>, or <strong>needs legal/manager approval</strong>.
+</p>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart LR
+    subgraph docs ["ذخیره اسناد"]
+        UP["آپلود PDF/DOCX"]
+        PAR["parse + chunk"]
+        EMB["embed → Chroma<br/>collection: org_docs"]
+    end
+    subgraph meeting ["جلسه"]
+        DEC["decisions + tasks<br/>از analysis_agent"]
+    end
+    subgraph align ["alignment_agent"]
+        RET["retrieve بندهای مرتبط"]
+        CMP["مقایسه semantic"]
+        REP["AlignmentReport"]
+    end
+    UP --> PAR --> EMB
+    DEC --> RET
+    EMB --> RET
+    RET --> CMP --> REP
+</pre>
+</div>
+<h4>Proposed data model</h4>
+<table>
+  <tr><th>Entity</th><th>Fields</th></tr>
+  <tr><td><code>OrgDocument</code></td><td><code>id</code>, <code>title</code>, <code>type</code> (sow|contract|rfp), <code>project_key</code>, <code>uploaded_at</code></td></tr>
+  <tr><td><code>AlignmentFinding</code></td><td><code>meeting_decision</code>, <code>doc_excerpt</code>, <code>status</code> (aligned|out_of_scope|unclear), <code>confidence</code>, <code>doc_id</code></td></tr>
+  <tr><td><code>AlignmentReport</code></td><td>List of findings + Persian summary for project manager.</td></tr>
+</table>
+<h4>Proposed API</h4>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Action</th></tr>
+  <tr><td>POST</td><td>/api/documents</td><td>Upload SOW/contract · index in Chroma.</td></tr>
+  <tr><td>GET</td><td>/api/documents</td><td>List project documents.</td></tr>
+  <tr><td>POST</td><td>/api/meetings/{id}/alignment</td><td>Run <code>alignment_agent</code> · comparison report.</td></tr>
+</table>
+<div class="warn">
+  <strong>Product warning:</strong> AI output is not a substitute for legal counsel — for binding contracts, human
+  review is mandatory. The UI must show a clear disclaimer.
+</div>
+
+<h3 id="adv-sent">7.3 Sentiment Analysis <em>(planned)</em></h3>
+<p>
+  On <strong>transcript text</strong> (not raw audio), per speaker and per meeting segment: overall tone
+  (positive / neutral / negative), <strong>misalignment</strong> (e.g. positive words with hidden concern), and
+  emotional trend through the meeting.
+</p>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart TB
+    TR["Transcript turns<br/>per speaker"]
+    CH["Chunk by speaker<br/>or time window"]
+    SA["sentiment_agent<br/>Gemini structured output"]
+    OUT["SpeakerSentimentProfile"]
+    TR --> CH --> SA --> OUT
+    subgraph metrics ["متریک‌ها"]
+        M1["polarity: -1..+1"]
+        M2["engagement: low/med/high"]
+        M3["concern_flags[]"]
+        M4["hidden_tension hint"]
+    end
+    OUT --> metrics
+</pre>
+</div>
+<h4>SpeakerSentimentProfile output</h4>
+<table>
+  <tr><th>Field</th><th>Meaning</th></tr>
+  <tr><td><code>speaker</code></td><td>Speaker name from transcript.</td></tr>
+  <tr><td><code>overall_tone</code></td><td>positive | neutral | negative | mixed.</td></tr>
+  <tr><td><code>polarity_score</code></td><td>Numeric from −1 to +1.</td></tr>
+  <tr><td><code>concern_phrases</code></td><td>Short quotes suggesting concern or opposition.</td></tr>
+  <tr><td><code>hidden_dissatisfaction</code></td><td>bool + explanation (e.g. "apparent agreement but emphasis on risk").</td></tr>
+  <tr><td><code>timeline</code></td><td>Tone shift at start / middle / end of meeting.</td></tr>
+</table>
+<p><strong>Proposed API:</strong> <code>GET /api/meetings/{id}/sentiment</code> — new tab beside summary/tasks/RAG.</p>
+<div class="warn">
+  <strong>Ethics &amp; privacy:</strong> Sentiment analysis is sensitive for team management. Only admin/facilitator
+  should see it; org opt-in required; no negative labeling in public reports. UI framing:
+  "signal for follow-up conversation," not "personality judgment."
+</div>
+
+<h2 id="mlops">8. MLOps &amp; Quality Cycle</h2>
+<p>
+  The MVP does not fine-tune models — it uses a hosted LLM. Therefore the operational concern is not model
+  training but <strong>ensuring prompt and output quality over time</strong> — exactly where an AI product
+  quietly degrades without fanfare.
+</p>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart LR
+    D["داده جدید /<br/>golden transcripts"] --> T["prompt tuning /<br/>eval"]
+    T --> DEP["استقرار"]
+    DEP --> MON["پایش کیفیت"]
+    MON --> D
+</pre>
+</div>
+<ul>
+  <li><strong>Golden set:</strong> A curated set of transcripts with reference summaries and expected tasks.</li>
+  <li><strong>Automated eval:</strong> Score each new prompt/model version against the golden set with
+      LLM-judge and/or human rubric, as part of CI.</li>
+  <li><strong>Prompt versioning:</strong> Treat prompts like versioned artifacts so a regression can be traced to
+      a specific change.</li>
+  <li><strong>Drift monitoring:</strong> Track summary quality, RAG citation accuracy, and Jira conversion rate
+      over time; alert on decline.</li>
+  <li><strong>Logfire (initial implementation):</strong> With <a href="https://logfire.pydantic.dev">Pydantic Logfire</a>,
+      agent runs, FastAPI/HTTPX requests, and pipeline spans (ingest → analyze → index) are traceable.
+      Enabled with <code>LOGFIRE_TOKEN</code> in <code>.env</code>; without a token, overhead is negligible.</li>
+</ul>
+<p>
+  This work is scheduled with Sprint 5 (scale, quality, deployment) and is an honest counterpart to AIOps/MLOps
+  theory: the lifecycle a product adopts as it matures, described realistically without overpromising in the MVP.
+</p>
+
+<h2 id="priorities">9. Prioritization</h2>
+<table>
+  <tr><th>Priority</th><th>Item</th><th>Rationale</th></tr>
+  <tr><td>P0</td><td>Multi-meeting RAG + FTS archive</td><td>Highest value over MVP.</td></tr>
+  <tr><td>P0</td><td>Jira assignee mapping</td><td>Real pain for operational teams.</td></tr>
+  <tr><td>P1</td><td>Auth + workspace</td><td>Prerequisite for enterprise customer.</td></tr>
+  <tr><td>P1</td><td>Edit before Jira create</td><td>User trust in AI output.</td></tr>
+  <tr><td>P1</td><td>Facilitator guide (done) + deeper coaching</td><td>Immediate differentiation with light infra.</td></tr>
+  <tr><td>P1</td><td>SOW/contract alignment</td><td>Value for PMs and fixed-scope contracts.</td></tr>
+  <tr><td>P2</td><td>PostgreSQL + queue</td><td>When traffic exceeds demo scale.</td></tr>
+  <tr><td>P2</td><td>Calendar metadata + summary email</td><td>Reduce data-entry friction.</td></tr>
+  <tr><td>P2</td><td>Sentiment analysis</td><td>Only after RBAC and ethical opt-in.</td></tr>
+  <tr><td>P3</td><td>Multi-agent · Confluence</td><td>Long-term differentiation.</td></tr>
+</table>
+
+<h2 id="deps">10. Technical Dependencies</h2>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart TD
+    MVP["Sprint 1 MVP"]
+    M["SQLite + Chroma"]
+    R2["RAG چندجلسه"]
+    J3["نگاشت assignee Jira"]
+    A4["Auth / org"]
+    P5["Postgres + deploy"]
+    MVP --> M
+    M --> R2
+    M --> J3
+    R2 --> A4
+    J3 --> A4
+    A4 --> P5
+</pre>
+</div>
+<p>
+  The dependency graph explains sprint order: the storage foundation enables both multi-meeting RAG and assignee
+  mapping; both motivate multi-tenancy (auth/org); and real tenant load eventually justifies PostgreSQL and
+  production deployment.
+</p>
+
+<h2 id="research">11. Longer-Horizon Research Ideas</h2>
+<p>Beyond planned product work, several directions could anchor thesis research or further development:</p>
+<ul>
+  <li><strong>Cross-meeting decision graph.</strong> Model decisions as nodes and detect contradiction, reversal,
+      and unfulfilled commitments across an organization's meeting history.</li>
+  <li><strong>Multi-agent debate for summaries.</strong> Use a critic/reviewer agent to challenge the first-pass
+      summary, and measure whether adversarial review improves real faithfulness.</li>
+  <li><strong>Semantic and speaker-aware chunking.</strong> Compare turn-based vs semantic, speaker-aware chunking
+      for retrieval accuracy on Persian transcripts.</li>
+  <li><strong>Faithfulness evaluation for Persian RAG.</strong> Build an evaluation harness for citation accuracy
+      and hallucination rate, specific to low-resource meeting data.</li>
+  <li><strong>Privacy-preserving analysis.</strong> On-device or PII-masked pipelines so sensitive meetings can be
+      analyzed without leaving the org network.</li>
+  <li><strong>Human-in-the-loop quality.</strong> Record human edits to summaries and tasks as feedback signals for
+      prompt improvement and per-organization adaptation.</li>
+</ul>
+
+<p class="meta">
+  Related: <a href="01-project-overview.html">Project Overview &amp; Vision</a> ·
+  <a href="02-implementation.html">Technical Implementation</a>.
+</p>
+
+</body>
+</html>

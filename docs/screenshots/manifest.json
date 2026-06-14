@@ -1,0 +1,31 @@
+{
+  "captured_at": "2026-06-04T15:07:19.354Z",
+  "frontend_url": "http://localhost:4321",
+  "meeting_id": "af02ad883858",
+  "files": [
+    {
+      "file": "home.png",
+      "path": "screenshots/home.png"
+    },
+    {
+      "file": "meeting-summary.png",
+      "path": "screenshots/meeting-summary.png"
+    },
+    {
+      "file": "meeting-tasks.png",
+      "path": "screenshots/meeting-tasks.png"
+    },
+    {
+      "file": "meeting-rag.png",
+      "path": "screenshots/meeting-rag.png"
+    },
+    {
+      "file": "tasks.png",
+      "path": "screenshots/tasks.png"
+    },
+    {
+      "file": "settings.png",
+      "path": "screenshots/settings.png"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+flowchart TB
+    subgraph input ["ورودی‌های جدید"]
+        T["Transcript جلسه"]
+        D["اسناد: SOW · قرارداد · PDF"]
+    end
+    subgraph agents ["عامل‌های پیشنهادی"]
+        F["facilitation_agent<br/>راهنمای برگزارکننده"]
+        A["alignment_agent<br/>هم‌راستایی با scope"]
+        S["sentiment_agent<br/>تحلیل لحن گویندگان"]
+    end
+    subgraph output ["خروجی برای سازمان"]
+        G["چک‌لیست جلسه بهتر"]
+        R["گزارش in-scope / out-of-scope"]
+        M["نقشه احساسات · هشدار ریسک"]
+    end
+    T --> F & S
+    T --> A
+    D --> A
+    F --> G
+    A --> R
+    S --> M

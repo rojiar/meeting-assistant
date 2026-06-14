@@ -1,0 +1,49 @@
+[۱۴:۰۰] مریم (مدیر محصول): امروز برنامه‌ریزی Sprint 2 و 3 را انجام می‌دهیم. خروجی باید scope، ریسک، وابستگی‌ها، و معیار پذیرش باشد.
+[۱۴:۰۱] امیر (توسعه backend): پیشنهاد من این است که اول پایه storage را محکم کنیم: SQLite برای meetings و ChromaDB برای vector store.
+[۱۴:۰۲] لیلا (طراح UX): از نظر UX، کاربر باید اول نتیجه قابل اعتماد ببیند؛ archive و search مهم‌تر از featureهای تزئینی است.
+[۱۴:۰۳] نازنین (QA): من می‌خواهم از همین الان acceptance testها را بنویسم. اگر scope زیاد شود، تست زنده با Gemini ناپایدار می‌شود.
+[۱۴:۰۴] کامبیز (فروش/مشتری): مشتری دمو بیشتر می‌پرسد «بعد جلسه چه کاری انجام می‌شود؟» پس Jira و action item dashboard خیلی مهم است.
+[۱۴:۰۵] مریم: خوب. اولویت‌ها را روی سه محور بچینیم: آرشیو، Jira عملیاتی، و قابلیت‌های پیشرفته آینده.
+[۱۴:۰۶] امیر: برای Sprint 2، multi-meeting RAG وسوسه‌انگیز است، اما اگر Chroma metadata درست نداشته باشیم بعداً migration سخت می‌شود.
+[۱۴:۰۷] نازنین: دقیقاً. باید تست کنیم که query فقط meeting_id درست را برگرداند و وقتی cross-meeting فعال شد، citations اشتباه نشود.
+[۱۴:۰۸] لیلا: در UI هم باید فرق «پرسش از این جلسه» و «پرسش از همه جلسات پروژه» واضح باشد.
+[۱۴:۰۹] مریم: تصمیم: Sprint 2 شامل archive، tags، project_key، FTS، و RAG چندجلسه‌ای محدود به project است.
+[۱۴:۱۰] امیر: task من: schema SQLite را با tags و project_key نهایی کنم و migration امن بنویسم.
+[۱۴:۱۱] نازنین: task من: تست search و filter و RAG با دو meeting مشابه که کلمات مشترک دارند.
+[۱۴:۱۲] لیلا: من wireframe ساده archive را می‌دهم: فیلتر نوع جلسه، پروژه، tag، و جستجو.
+[۱۴:۱۳] کامبیز: آیا export PDF هم Sprint 2 باشد؟ مشتری‌ها می‌خواهند صورتجلسه را share کنند.
+[۱۴:۱۴] مریم: بله، export Markdown و PDF در Sprint 2. اما PDF اگر زمان برد، Markdown کافی است.
+[۱۴:۱۵] امیر: برای PDF می‌توانیم اول Markdown server-side بدهیم و بعد export docs جدا باشد.
+[۱۴:۱۶] نازنین: معیار پذیرش: سه جلسه sample، search زیر ۵۰۰ms، export بدون بهم‌ریختگی RTL.
+[۱۴:۱۷] مریم: حالا Sprint 3: Jira.
+[۱۴:۱۸] کامبیز: برای دمو سازمانی، issue بدون assignee خیلی ضعیف است. باید speaker به Jira accountId map شود.
+[۱۴:۱۹] امیر: می‌توانیم table ساده speaker_jira_map داشته باشیم و در settings UI نگاشت را بسازیم.
+[۱۴:۲۰] لیلا: UX آن باید ساده باشد: نام گوینده، accountId، نام نمایشی. validation حداقلی.
+[۱۴:۲۱] نازنین: تست مهم: اگر assignee map نبود، issue بدون assignee ساخته شود ولی fail نکند.
+[۱۴:۲۲] مریم: تصمیم: Sprint 3 شامل assignee map، ذخیره jira_key روی task، و صفحه tasks dashboard باشد.
+[۱۴:۲۳] کامبیز: dashboard tasks برای مدیر خیلی مهم است. بتواند open_only ببیند و بفهمد کدام تسک هنوز Jira ندارد.
+[۱۴:۲۴] امیر: API آن ساده است: GET /api/tasks با open_only. داده از tasks داخل MeetingAnalysis استخراج می‌شود.
+[۱۴:۲۵] لیلا: صفحه tasks باید قابلیت scan سریع داشته باشد: عنوان، جلسه، مسئول، deadline، priority، Jira key.
+[۱۴:۲۶] نازنین: معیار پذیرش: وقتی Jira create موفق است، jira_key در task ذخیره شود و دوباره create نشود.
+[۱۴:۲۷] مریم: حالا قابلیت‌های آینده که کاربرها درخواست می‌دهند: راهنمای جلسه بهتر، مقایسه با SOW، sentiment.
+[۱۴:۲۸] کامبیز: راهنمای برگزارکننده برای فروش عالی است. بعد جلسه بگوید «جلسه طولانی شد، تصمیم کم داشت، دفعه بعد timebox کنید».
+[۱۴:۲۹] لیلا: باید لحن آن coaching باشد، نه سرزنش. مثلاً «پیشنهاد برای جلسه بعد» نه «اشتباهات شما».
+[۱۴:۳۰] امیر: از نظر فنی، facilitation_agent می‌تواند از transcript، speaker stats، تعداد decisions و tasks استفاده کند.
+[۱۴:۳۱] نازنین: باید test کنیم که خروجی شامل توصیه‌های actionable باشد و hallucination درباره زمان جلسه نکند.
+[۱۴:۳۲] مریم: این را Sprint 6+ می‌گذاریم، ولی docs باید الآن ذکر کند.
+[۱۴:۳۳] کامبیز: SOW و contract alignment هم خیلی مهم است. اگر در جلسه تصمیمی خارج از قرارداد بگیرند، سیستم هشدار دهد.
+[۱۴:۳۴] امیر: برای این باید upload document داشته باشیم، parse PDF/DOCX، chunk، embed در collection جدا مثل org_docs.
+[۱۴:۳۵] لیلا: UI باید نشان دهد کدام بند قرارداد مرتبط است. فقط «out of scope» کافی نیست، citation لازم دارد.
+[۱۴:۳۶] نازنین: و disclaimer حقوقی. AI نباید جای legal review را بگیرد.
+[۱۴:۳۷] مریم: تصمیم: alignment_agent آینده باید سه status بدهد: aligned، out_of_scope، unclear.
+[۱۴:۳۸] کامبیز: sentiment analysis چطور؟ مشتری‌ها می‌پرسند آیا تیم واقعاً موافق بود یا فقط سکوت کرد.
+[۱۴:۳۹] لیلا: این حساس است. نباید به افراد برچسب منفی بزنیم. باید به عنوان «سیگنال برای follow-up» باشد.
+[۱۴:۴۰] امیر: روی متن transcript تحلیل می‌کنیم، نه صوت و نه تشخیص احساس چهره. خروجی: tone کلی، concern phrases، engagement.
+[۱۴:۴۱] نازنین: نیاز به RBAC و opt-in سازمانی دارد. در MVP عمومی نشان ندهیم.
+[۱۴:۴۲] مریم: تصمیم: sentiment P2 بعد از auth/RBAC. docs باید اخلاق و حریم خصوصی را برجسته کند.
+[۱۴:۴۳] کامبیز: برای roadmap، این سه feature را در سند advanced future بگذاریم با diagram.
+[۱۴:۴۴] امیر: task من: spec markdown و HTML فارسی برای advanced features با Mermaid diagram.
+[۱۴:۴۵] لیلا: task من: اصطلاحات UX را تنظیم کنم: راهنمای برگزارکننده، هم‌راستایی scope، سیگنال sentiment.
+[۱۴:۴۶] نازنین: task من: test cases آینده را لیست کنم، مخصوصاً hallucination و privacy.
+[۱۴:۴۷] مریم: جمع‌بندی: Sprint 2 archive/RAG/export، Sprint 3 Jira/tasks، Sprint 6+ facilitation/SOW/sentiment. همه موافق؟
+[۱۴:۴۸] همه: موافقیم.

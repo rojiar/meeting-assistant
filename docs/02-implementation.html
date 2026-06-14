@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meeting Assistant — Technical Implementation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --text: #1a1a1a; --muted: #555; --border: #ddd; --bg: #fafafa; --accent: #059669; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; direction: ltr; text-align: left; line-height: 1.75; color: var(--text); max-width: 940px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; background: #fff; }
+    h1 { font-size: 1.95rem; border-bottom: 3px solid var(--accent); padding-bottom: 0.6rem; line-height: 1.5; }
+    h2 { font-size: 1.4rem; margin-top: 2.75rem; color: #111; border-left: 4px solid var(--accent); padding-left: 0.6rem; }
+    h3 { font-size: 1.13rem; margin-top: 1.75rem; color: #1f2937; }
+    h4 { font-size: 1.02rem; margin-top: 1.25rem; color: #374151; }
+    p, li { font-size: 1.02rem; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.96rem; }
+    th, td { border: 1px solid var(--border); padding: 0.55rem 0.8rem; text-align: left; vertical-align: top; }
+    th { background: var(--bg); }
+    code, pre, .mermaid-wrap { direction: ltr; text-align: left; unicode-bidi: embed; }
+    code { background: #f0f0f0; padding: 0.12rem 0.4rem; border-radius: 4px; font-size: 0.88em; }
+    pre { background: #f5f5f5; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; }
+    pre code { background: none; padding: 0; }
+    .mermaid-wrap { margin: 1.5rem 0; padding: 1rem; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+    .note { background: #ecfdf5; border-left: 4px solid var(--accent); padding: 1rem 1.2rem; margin: 1.2rem 0; border-radius: 0 8px 8px 0; }
+    .cut { background: #fef2f2; border-left: 4px solid #dc2626; padding: 1rem 1.2rem; margin: 1.2rem 0; border-radius: 0 8px 8px 0; }
+    .future { background: #fefce8; border-left: 4px solid #ca8a04; padding: 1rem 1.2rem; margin: 1.2rem 0; border-radius: 0 8px 8px 0; }
+    .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+    .lang-link { margin-bottom: 1rem; font-size: 0.92rem; }
+    nav.toc { background: var(--bg); padding: 1rem 1.4rem; border-radius: 8px; margin: 1.5rem 0 2.5rem; border: 1px solid var(--border); }
+    nav.toc ol { margin: 0.3rem 0; padding-left: 1.4rem; columns: 2; }
+    nav.toc a { color: #2563eb; }
+    .screenshot-grid { display: grid; gap: 1.5rem; margin: 1.5rem 0; }
+    .screenshot-grid figure { margin: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #111; }
+    .screenshot-grid img { display: block; width: 100%; height: auto; }
+    .screenshot-grid figcaption { padding: 0.65rem 0.85rem; font-size: 0.88rem; color: var(--muted); background: var(--bg); border-top: 1px solid var(--border); }
+  </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+  </script>
+</head>
+<body>
+
+<h1>Meeting Assistant<br>Technical Implementation</h1>
+<p class="meta">
+  Document 2 of 3 · Engineering reference for the current MVP ·
+  <a href="01-project-overview.html">Project overview</a> ·
+  <a href="03-roadmap-and-future-work.html">Roadmap</a> ·
+  <a href="../CHANGELOG.md">CHANGELOG</a>
+</p>
+
+<p>
+  This document is the engineering reference for the running system: how data flows from input to Jira, how each
+  component is built, the API surface, UI, error handling, and test suite. For product motivation and vision see
+  <a href="01-project-overview.html">Document 1</a>; for future work see
+  <a href="03-roadmap-and-future-work.html">Document 3</a>.
+</p>
+
+<nav class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#goal">1. System Goal</a></li>
+    <li><a href="#scope">2. MVP vs Full Vision (YAGNI)</a></li>
+    <li><a href="#flow">3. End-to-End Data Flow</a></li>
+    <li><a href="#voice">4. Audio Transcription</a></li>
+    <li><a href="#sqlite">5. SQLite — Meeting Storage</a></li>
+    <li><a href="#chroma">6. ChromaDB — Vector Store</a></li>
+    <li><a href="#agents">7. Pydantic AI Agents</a></li>
+    <li><a href="#ui">8. User Interface (Astro SSR)</a></li>
+    <li><a href="#api">9. API Endpoints</a></li>
+    <li><a href="#synthetic">10. Synthetic Data</a></li>
+    <li><a href="#env">11. Environment Configuration</a></li>
+    <li><a href="#structure">12. Project Structure</a></li>
+    <li><a href="#run">13. Running the System</a></li>
+    <li><a href="#tests">14. Tests</a></li>
+    <li><a href="#errors">15. Error Handling</a></li>
+    <li><a href="#observability">16. MLOps Observability (Logfire)</a></li>
+  </ol>
+</nav>
+
+<h2 id="goal">1. System Goal</h2>
+<p>
+  Transform Persian meeting transcripts into operational output: <strong>summary</strong>, <strong>tasks</strong>,
+  <strong>RAG Q&amp;A</strong>, and <strong>Jira issues</strong> — through a pipeline fast enough for live demo.
+</p>
+
+<h2 id="scope">2. MVP vs Full Vision (YAGNI)</h2>
+<p>
+  The original concept document described a maximal system. The MVP keeps only what is needed to prove value and
+  explicitly records what is deferred — a disciplined "you ain't gonna need it" stance.
+</p>
+<table>
+  <tr><th>Capability</th><th>Full vision (concept doc)</th><th>Current MVP</th></tr>
+  <tr><td>Input</td><td>Live recording + streaming STT</td><td>Transcript (paste + text file) and <strong>audio</strong> (upload/record &larr; Gemini)</td></tr>
+  <tr><td>Analysis</td><td>GPT-4 / multiple models</td><td>Gemini Flash + Pydantic AI</td></tr>
+  <tr><td>Search / Vector DB</td><td>ElasticSearch</td><td><strong>ChromaDB</strong> embedded (<code>data/chroma/</code>)</td></tr>
+  <tr><td>Task tracking</td><td>Jira + Trello + Asana + …</td><td>Jira only (<code>KAN</code>) — issues in English</td></tr>
+  <tr><td>RAG</td><td>Whole-org archive</td><td>Single meeting · multi-meeting planned (Sprint 2)</td></tr>
+  <tr><td>Calendar / Teams</td><td>Full integration</td><td>Deferred (next sprint)</td></tr>
+  <tr><td>Dashboard / notifications</td><td>Weekly reports</td><td>Cross-meeting task dashboard today · richer reports later</td></tr>
+</table>
+
+<h2 id="flow">3. End-to-End Data Flow</h2>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+sequenceDiagram
+    participant U as کاربر
+    participant UI as Astro (RTL)
+    participant API as FastAPI
+    participant G as Gemini
+    participant AA as analysis_agent
+    participant RA as rag_agent
+    participant C as ChromaDB
+    participant J as Jira KAN
+
+    U->>UI: transcript / صوت / جلسه نمونه
+    opt فایل یا ضبط صوتی
+        UI->>API: POST /api/transcribe
+        API->>G: Gemini audio → متن
+        API-->>UI: transcript
+    end
+    UI->>API: POST /api/meetings
+    API->>API: parse + chunk + embed
+    API->>C: index chunks
+    API->>AA: run(transcript)
+    AA-->>UI: خلاصه + تسک‌ها (SSR)
+    U->>UI: پرسش RAG
+    UI->>API: POST /ask
+    API->>C: query by meeting_id
+    API->>RA: context + پرسش
+    RA-->>UI: پاسخ طبیعی + footnote
+    U->>UI: تأیید تسک
+    UI->>API: POST /jira/create
+    API->>J: issue جدید
+</pre>
+</div>
+
+<h2 id="voice">4. Audio Transcription (Gemini)</h2>
+<p>
+  Audio input is a <strong>separate step before ingest</strong>, so text paste and sample meeting loading remain
+  unchanged. The same <code>GOOGLE_API_KEY</code> and <code>GEMINI_MODEL</code> are used — no separate
+  speech-to-text service.
+</p>
+<table>
+  <tr><th>Step</th><th>Details</th></tr>
+  <tr><td>UI</td><td>Upload <code>mp3, wav, m4a, ogg, webm, flac</code> or <strong>Record</strong> button (MediaRecorder).</td></tr>
+  <tr><td>API</td><td><code>POST /api/transcribe</code> — multipart <code>file</code> &larr; Gemini <code>generateContent</code> with inline audio.</td></tr>
+  <tr><td>Output</td><td>Persian transcript in <code>[MM:SS] name: text</code> format, editable before analysis.</td></tr>
+  <tr><td>Limit</td><td>Maximum <strong>20 MB</strong> (<code>MAX_AUDIO_BYTES</code>).</td></tr>
+  <tr><td>After transcription</td><td>Same path as <code>POST /api/meetings</code> — analysis, Chroma, RAG, Jira.</td></tr>
+</table>
+<div class="note">
+  <strong>Difference from professional STT:</strong> Diarization and live streaming are not part of the MVP; for
+  demo and recorded audio, single-pass Gemini transcription is sufficient.
+</div>
+
+<h2 id="sqlite">5. SQLite — Meeting Storage</h2>
+<table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>File</td><td><code>data/meetings.db</code></td></tr>
+  <tr><td>Table</td><td><code>meetings</code> — transcript, summary, key_points, decisions, tasks (JSON)</td></tr>
+  <tr><td>Migration</td><td>Legacy <code>data/meetings/*.json</code> files are imported once on first run.</td></tr>
+</table>
+<p>
+  SQLite gives the MVP durable persistence without operations overhead. The schema is deliberately simple so
+  Sprint 5 migration to PostgreSQL (with SQLAlchemy + Alembic) is straightforward.
+</p>
+
+<h2 id="chroma">6. ChromaDB — Vector Store</h2>
+<div class="note">
+  <strong>Why Chroma?</strong> The previous version used a hand-rolled JSON store with a Python cosine loop —
+  slow for demo and hard to maintain. ChromaDB is embedded: no separate server, persistence in
+  <code>data/chroma/</code>, and fast HNSW search.
+</div>
+<table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>Library</td><td><code>chromadb</code></td></tr>
+  <tr><td>Collection</td><td><code>meeting_chunks</code></td></tr>
+  <tr><td>Filter</td><td><code>metadata.meeting_id</code></td></tr>
+  <tr><td>Embedding</td><td><code>gemini-embedding-001</code> (from Google API; Chroma only stores/searches)</td></tr>
+  <tr><td>Distance</td><td>cosine (HNSW)</td></tr>
+</table>
+
+<h2 id="agents">7. Pydantic AI Agents</h2>
+
+<h3>7.1 analysis_agent</h3>
+<pre><code>from pydantic import BaseModel
+from pydantic_ai import Agent
+
+class MeetingAnalysis(BaseModel):
+    title: str
+    summary: str
+    key_points: list[str]
+    decisions: list[str]
+    tasks: list[MeetingTask]
+
+analysis_agent = Agent(
+    'google:gemini-3.5-flash',
+    output_type=MeetingAnalysis,
+    system_prompt='تحلیل transcript جلسه فارسی. فقط بر اساس متن.',
+)</code></pre>
+
+<h3>7.2 RAG — Smart Behavior</h3>
+<ul>
+  <li><strong>Hello / سلام:</strong> No transcript search — a short reply inviting a real question about the
+      meeting.</li>
+  <li><strong>Meeting question:</strong> Chroma top-4 &larr; internal context for the LLM (raw transcript is never
+      shown in the UI).</li>
+  <li><strong>Answer:</strong> Natural Persian with attribution ("Ali said…") and a short footnote when needed.</li>
+</ul>
+<pre><code># Small-talk detection
+is_small_talk("hello") -> chitchat_agent, sources=[]
+
+# Real question
+chunks = chroma.query(meeting_id, question)
+rag_agent.run(context + question) -> RagAnswer</code></pre>
+
+<h3>7.3 facilitation_agent</h3>
+<p>
+  After ingest, the facilitator can view suggestions for improving the next meeting — coaching tone, not blame.
+</p>
+<ul>
+  <li><strong>Input:</strong> Transcript, <code>MeetingAnalysis</code>, speaker participation stats, meeting type.</li>
+  <li><strong>Output:</strong> <code>FacilitationReport</code> — positives, improvements, next-meeting agenda,
+      timebox suggestion, coaching summary, and optional facilitator score 1–5.</li>
+  <li><strong>API:</strong> <code>GET /api/meetings/{id}/facilitation</code></li>
+  <li><strong>UI:</strong> "Meeting guide" tab on the meeting page (lazy loaded).</li>
+</ul>
+<div class="note">
+  Jira creation is a direct API route. <code>summary</code> comes from <code>title_en</code> (Persian fallback);
+  <code>description</code> is English and structured: <strong>work description</strong> (<code>detail</code>),
+  <strong>acceptance criteria</strong> (<code>acceptance_criteria</code>), meeting, context, assignee, deadline,
+  priority. The UI is English LTR.
+</div>
+
+<h2 id="ui">8. User Interface (Astro SSR)</h2>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart TB
+    subgraph pages ["Pages — LTR"]
+        home["/ Home"]
+        meeting["/meeting/id"]
+        tasks["/tasks"]
+        settings["/settings"]
+    end
+    subgraph tabs ["Meeting tabs"]
+        tab1["Summary & decisions"]
+        tab2["Tasks + Jira"]
+        tab3["Ask the meeting"]
+        tab4["Facilitator guide"]
+    end
+    home --> meeting
+    meeting --> tabs
+</pre>
+</div>
+<p><strong>RTL/LTR rules:</strong></p>
+<ul>
+  <li><code>html lang="en" dir="ltr"</code> — English UI at <code>/</code> (Inter font); strings in <code>frontend/src/i18n/messages.ts</code>.</li>
+  <li>Code, environment variables, URLs, and API names use <code>dir="ltr"</code>.</li>
+  <li>Mermaid diagrams render inside an LTR wrapper.</li>
+</ul>
+<p>
+  The <code>/meeting/[id]</code> page fetches data on the <strong>Astro server</strong> from FastAPI (not
+  client-only JS), fixing "stuck on loading" and improving first paint.
+</p>
+
+<div class="screenshot-grid">
+  <figure>
+    <img src="../screenshots/home.png" alt="Home page — meeting list, filter, sample meetings, transcript form" loading="lazy" />
+    <figcaption><strong>Home</strong> — meeting archive, search/filter, synthetic meetings, ingest form</figcaption>
+  </figure>
+  <figure>
+    <img src="../screenshots/meeting-summary.png" alt="Meeting page — summary tab" loading="lazy" />
+    <figcaption><strong>Meeting · Summary</strong> — key points, decisions, participation stats</figcaption>
+  </figure>
+  <figure>
+    <img src="../screenshots/meeting-tasks.png" alt="Meeting page — tasks and Jira tab" loading="lazy" />
+    <figcaption><strong>Meeting · Tasks</strong> — action items, Jira preview and create</figcaption>
+  </figure>
+  <figure>
+    <img src="../screenshots/meeting-rag.png" alt="Meeting page — RAG Q&amp;A tab" loading="lazy" />
+    <figcaption><strong>Meeting · Ask</strong> — RAG with natural answers and sources</figcaption>
+  </figure>
+  <figure>
+    <img src="../screenshots/tasks.png" alt="Tasks dashboard" loading="lazy" />
+    <figcaption><strong>Tasks</strong> — cross-meeting dashboard with "open only" filter</figcaption>
+  </figure>
+  <figure>
+    <img src="../screenshots/settings.png" alt="Settings page" loading="lazy" />
+    <figcaption><strong>Settings</strong> — API status, speaker&larr;Jira mapping, .env guide</figcaption>
+  </figure>
+</div>
+<p class="meta">Screenshots are generated with <code>./scripts/capture-ui-screenshots.sh</code> (Playwright) — backend and frontend must be running.</p>
+
+<h2 id="api">9. API Endpoints</h2>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+  <tr><td>GET</td><td>/api/health</td><td>Service health — Google/Jira/DB status</td></tr>
+  <tr><td>GET</td><td>/api/meetings</td><td>List meetings</td></tr>
+  <tr><td>GET</td><td>/api/meetings/{id}</td><td>Get one meeting</td></tr>
+  <tr><td>DELETE</td><td>/api/meetings/{id}</td><td>Delete meeting</td></tr>
+  <tr><td>GET</td><td>/api/tasks</td><td>Cross-meeting action items</td></tr>
+  <tr><td>GET</td><td>/api/meetings/synthetic</td><td>List bundled synthetic meetings</td></tr>
+  <tr><td>POST</td><td>/api/meetings/synthetic/{file_id}</td><td>Ingest one synthetic meeting</td></tr>
+  <tr><td>POST</td><td>/api/transcribe</td><td>Transcribe audio file with Gemini</td></tr>
+  <tr><td>POST</td><td>/api/meetings</td><td>Ingest + <code>analysis_agent</code></td></tr>
+  <tr><td>GET</td><td>/api/meetings/{id}/export</td><td>Export meeting summary</td></tr>
+  <tr><td>GET</td><td>/api/meetings/{id}/speakers</td><td>Speaker participation stats</td></tr>
+  <tr><td>GET</td><td>/api/meetings/{id}/facilitation</td><td>Facilitator guide — <code>facilitation_agent</code></td></tr>
+  <tr><td>POST</td><td>/api/meetings/{id}/ask</td><td>RAG — <code>rag_agent</code></td></tr>
+  <tr><td>POST</td><td>/api/meetings/{id}/jira/preview</td><td>Preview Jira issues</td></tr>
+  <tr><td>POST</td><td>/api/meetings/{id}/jira/create</td><td>Create Jira issues</td></tr>
+  <tr><td>GET / PUT / DELETE</td><td>/api/settings/assignee-map</td><td>Speaker &larr; Jira account mapping</td></tr>
+</table>
+
+<h2 id="synthetic">10. Synthetic Data</h2>
+<table>
+  <tr><th>File</th><th>Topic</th></tr>
+  <tr><td>meeting-01-scrum.txt</td><td>Weekly standup</td></tr>
+  <tr><td>meeting-02-planning.txt</td><td>MVP planning</td></tr>
+  <tr><td>meeting-03-review.txt</td><td>Sprint review</td></tr>
+  <tr><td>meeting-04-client-kickoff.txt</td><td>Client kickoff — scope, demo, security, pilot</td></tr>
+</table>
+<p>Line format: <code>[14:02] Ali: speech text</code>.</p>
+
+<h2 id="env">11. Environment Configuration (.env)</h2>
+<pre><code>GOOGLE_API_KEY=...
+EMBEDDING_MODEL=gemini-embedding-001
+GEMINI_MODEL=google:gemini-3.5-flash
+MAX_AUDIO_BYTES=20971520
+JIRA_SITE_URL=https://your-site.atlassian.net
+JIRA_PROJECT_KEY=KAN
+JIRA_EMAIL=your@email.com
+JIRA_API_TOKEN=...
+PUBLIC_BACKEND_URL=http://127.0.0.1:8000
+BACKEND_PORT=8000</code></pre>
+
+<h2 id="structure">12. Project Structure</h2>
+<pre><code>project/
+├── frontend/          # Astro SSR — Persian RTL UI
+├── backend/
+│   ├── main.py        # FastAPI app + routes
+│   ├── agents/        # analysis_agent, rag_agent, facilitation
+│   ├── services/      # sqlite, chroma, jira, embed, audio_transcribe,
+│   │                  # gemini_errors, stats, ingest, facilitation
+│   ├── models/        # Pydantic schemas
+│   └── tests/         # unit + live tests
+├── data/synthetic/    # sample meetings
+├── data/meetings.db   # SQLite — summaries and tasks
+├── data/chroma/       # ChromaDB persistence
+├── docs/              # HTML docs + PDF + diagrams + CHANGELOG
+└── scripts/           # run-dev, run-backend, run-frontend, tests, export-docs</code></pre>
+
+<h2 id="run">13. Running the System</h2>
+<p>The full stack runs with one script (frees ports, starts both servers, cleans up on exit):</p>
+<pre><code>chmod +x scripts/run-dev.sh
+./scripts/run-dev.sh
+# Open: http://localhost:4321</code></pre>
+<p>Or run the two services separately:</p>
+<pre><code>./scripts/run-backend.sh    # FastAPI on :8000
+./scripts/run-frontend.sh   # Astro on :4321</code></pre>
+
+<h2 id="tests">14. Tests</h2>
+<table>
+  <tr><th>Type</th><th>Command</th><th>Count</th></tr>
+  <tr><td>Unit (mocked)</td><td>./scripts/run-tests.sh</td><td>150 pass (13 skip without optional/live credentials)</td></tr>
+  <tr><td>Live API &amp; integration</td><td>./scripts/run-live-tests.sh</td><td>13 (real Gemini/Jira)</td></tr>
+  <tr><td>All</td><td>./scripts/run-all-tests.sh</td><td>Unit + live</td></tr>
+</table>
+<p>
+  Unit tests mock the LLM and external services for fast offline runs. The live suite exercises real FastAPI
+  routes against real Google/Jira credentials, with a single Gemini end-to-end flow per session to avoid
+  Pydantic AI event-loop issues.
+</p>
+
+<h2 id="errors">15. Error Handling</h2>
+<table>
+  <tr><th>Error</th><th>Behavior</th></tr>
+  <tr><td>Gemini timeout</td><td>One retry + Persian user message</td></tr>
+  <tr><td>Transcript without speaker</td><td><code>[ناشناس]</code> label</td></tr>
+  <tr><td>Jira 401</td><td>Guide to check <code>.env</code></td></tr>
+  <tr><td>Invalid / oversized audio</td><td>HTTP 400 (Persian) — format or <code>MAX_AUDIO_BYTES</code></td></tr>
+  <tr><td>Gemini billing (403 dunning)</td><td>Persian billing guidance for transcription and analysis</td></tr>
+  <tr><td>RAG no match</td><td>"Not found in this meeting"</td></tr>
+</table>
+<p>
+  A dedicated <code>gemini_errors</code> service maps provider exceptions (<code>ModelHTTPError</code> and httpx
+  errors) to user-friendly Persian <code>HTTPException</code>s, so a billing hold or invalid key never surfaces
+  as a raw stack trace.
+</p>
+
+<h2 id="observability">16. MLOps Observability (Pydantic Logfire)</h2>
+<p>
+  To monitor agent and pipeline quality in real environments, we use
+  <a href="https://logfire.pydantic.dev">Pydantic Logfire</a> (OpenTelemetry).
+  Module <code>backend/observability.py</code> at startup:
+</p>
+<ul>
+  <li><code>logfire.instrument_pydantic_ai()</code> — trace every agent run (analysis, RAG, facilitation)</li>
+  <li><code>logfire.instrument_httpx()</code> — Gemini and Jira requests</li>
+  <li><code>logfire.instrument_fastapi(app)</code> — API routes</li>
+  <li>Manual spans on ingest: <code>ingest_meeting</code> → <code>analyze_transcript</code> → <code>index_vectors</code></li>
+</ul>
+<p>
+  Variables <code>LOGFIRE_TOKEN</code>, <code>LOGFIRE_SERVICE_NAME</code>, <code>LOGFIRE_ENVIRONMENT</code> in
+  <code>.env</code>. Without a token, no data is sent and overhead is negligible.
+  <code>GET /api/health</code> returns <code>logfire: true/false</code>.
+</p>
+
+<div class="future">
+  <strong>Upcoming sprints:</strong> See <a href="03-roadmap-and-future-work.html">Document 3</a> —
+  multi-meeting RAG + full-text archive (Sprint 2), assignee mapping + Jira OAuth (Sprint 3), auth/workspace +
+  calendar metadata (Sprint 4), PostgreSQL + queue + deployment (Sprint 5), and multi-agent capabilities
+  (Sprint 6+). Live streaming STT is deliberately <em>not</em> on the roadmap — Gemini transcription covers MVP
+  needs.
+</div>
+
+</body>
+</html>

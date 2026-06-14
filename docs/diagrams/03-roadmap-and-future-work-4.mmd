@@ -1,0 +1,18 @@
+flowchart LR
+    subgraph docs ["ذخیره اسناد"]
+        UP["آپلود PDF/DOCX"]
+        PAR["parse + chunk"]
+        EMB["embed → Chroma<br/>collection: org_docs"]
+    end
+    subgraph meeting ["جلسه"]
+        DEC["decisions + tasks<br/>از analysis_agent"]
+    end
+    subgraph align ["alignment_agent"]
+        RET["retrieve بندهای مرتبط"]
+        CMP["مقایسه semantic"]
+        REP["AlignmentReport"]
+    end
+    UP --> PAR --> EMB
+    DEC --> RET
+    EMB --> RET
+    RET --> CMP --> REP

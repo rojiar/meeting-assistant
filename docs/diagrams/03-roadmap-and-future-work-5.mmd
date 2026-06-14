@@ -1,0 +1,13 @@
+flowchart TB
+    TR["Transcript turns<br/>per speaker"]
+    CH["Chunk by speaker<br/>or time window"]
+    SA["sentiment_agent<br/>Gemini structured output"]
+    OUT["SpeakerSentimentProfile"]
+    TR --> CH --> SA --> OUT
+    subgraph metrics ["متریک‌ها"]
+        M1["polarity: -1..+1"]
+        M2["engagement: low/med/high"]
+        M3["concern_flags[]"]
+        M4["hidden_tension hint"]
+    end
+    OUT --> metrics

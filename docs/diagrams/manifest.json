@@ -1,0 +1,21 @@
+{
+  "01-project-overview.html": [
+    "diagrams/01-project-overview-0.svg",
+    "diagrams/01-project-overview-1.svg",
+    "diagrams/01-project-overview-2.svg"
+  ],
+  "02-implementation.html": [
+    "diagrams/02-implementation-0.svg",
+    "diagrams/02-implementation-1.svg"
+  ],
+  "03-roadmap-and-future-work.html": [
+    "diagrams/03-roadmap-and-future-work-0.svg",
+    "diagrams/03-roadmap-and-future-work-1.svg",
+    "diagrams/03-roadmap-and-future-work-2.svg",
+    "diagrams/03-roadmap-and-future-work-3.svg",
+    "diagrams/03-roadmap-and-future-work-4.svg",
+    "diagrams/03-roadmap-and-future-work-5.svg",
+    "diagrams/03-roadmap-and-future-work-6.svg",
+    "diagrams/03-roadmap-and-future-work-7.svg"
+  ]
+}

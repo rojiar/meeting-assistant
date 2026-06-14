@@ -1,0 +1,10 @@
+flowchart LR
+    T["Transcript"] --> C["Chunk<br/>۳–۵ نوبت"]
+    C --> E["gemini-embedding-001"]
+    E --> V["ChromaDB<br/>meeting_chunks"]
+    Q["پرسش کاربر"] --> ST{"small talk?"}
+    ST -->|سلام/hello| CH["chitchat — بدون جستجو"]
+    ST -->|خیر| S["Chroma query top-4"]
+    S --> CTX["Context داخلی"]
+    CTX --> AG["rag_agent"]
+    AG --> A["پاسخ طبیعی + footnote"]

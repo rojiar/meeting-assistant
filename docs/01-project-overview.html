@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Organizational Meeting Assistant — Project Overview &amp; Vision</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --text: #1a1a1a; --muted: #555; --border: #ddd; --bg: #fafafa; --accent: #2563eb; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; direction: ltr; text-align: left; line-height: 1.75; color: var(--text); max-width: 940px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; background: #fff; }
+    h1 { font-size: 1.95rem; border-bottom: 3px solid var(--accent); padding-bottom: 0.6rem; line-height: 1.5; }
+    h2 { font-size: 1.4rem; margin-top: 2.75rem; color: #111; border-left: 4px solid var(--accent); padding-left: 0.6rem; }
+    h3 { font-size: 1.13rem; margin-top: 1.75rem; color: #1f2937; }
+    p, li { font-size: 1.02rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.96rem; }
+    th, td { border: 1px solid var(--border); padding: 0.55rem 0.8rem; text-align: left; vertical-align: top; }
+    th { background: var(--bg); }
+    code, pre, .mermaid-wrap { direction: ltr; text-align: left; unicode-bidi: embed; }
+    code { background: #f0f0f0; padding: 0.12rem 0.4rem; border-radius: 4px; font-size: 0.88em; }
+    pre { background: #f5f5f5; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; }
+    .mermaid-wrap { margin: 1.5rem 0; padding: 1rem; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+    .note { background: #eff6ff; border-left: 4px solid var(--accent); padding: 1rem 1.2rem; margin: 1.2rem 0; border-radius: 0 8px 8px 0; }
+    .future { background: #fefce8; border-left: 4px solid #ca8a04; padding: 1rem 1.2rem; margin: 1.2rem 0; border-radius: 0 8px 8px 0; }
+    .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+    .lang-link { margin-bottom: 1rem; font-size: 0.92rem; }
+    nav.toc { background: var(--bg); padding: 1rem 1.4rem; border-radius: 8px; margin: 1.5rem 0 2.5rem; border: 1px solid var(--border); }
+    nav.toc ol { margin: 0.3rem 0; padding-left: 1.4rem; }
+    nav.toc a { color: var(--accent); }
+    .lead { font-size: 1.1rem; color: #374151; }
+    .screenshot-grid { display: grid; gap: 1.5rem; margin: 1.5rem 0; }
+    .screenshot-grid figure { margin: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #111; }
+    .screenshot-grid img { display: block; width: 100%; height: auto; }
+    .screenshot-grid figcaption { padding: 0.65rem 0.85rem; font-size: 0.88rem; color: var(--muted); background: var(--bg); border-top: 1px solid var(--border); }
+  </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+  </script>
+</head>
+<body>
+
+<h1>Organizational Meeting Assistant<br>Project Overview &amp; Vision</h1>
+<p class="meta">
+  Document 1 of 3 · Thesis / capstone project · AI-native product design ·
+  Repository: <a href="https://github.com/Rvin-zh/meeting-assistant">github.com/Rvin-zh/meeting-assistant</a> ·
+  <a href="../CHANGELOG.md">CHANGELOG</a>
+</p>
+
+<p class="lead">
+  The <strong>Organizational Meeting Assistant</strong> turns raw meeting conversation — whether typed text or
+  an audio file/recording — into <strong>structured, actionable knowledge</strong>: a clean summary, key points,
+  explicit decisions, follow-up tasks, a question-and-answer layer over meeting content, and one-click Jira issue
+  creation. This product is the first deliverable from an extensible core we call the
+  <em>LLM-based Organizational AI Core</em>.
+</p>
+
+<nav class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#problem">1. The Problem</a></li>
+    <li><a href="#vision">2. Product Vision</a></li>
+    <li><a href="#mvp">3. What the MVP Does Today</a></li>
+    <li><a href="#academic">4. Academic Framing: An AI-Native Product</a></li>
+    <li><a href="#architecture">5. System Architecture</a></li>
+    <li><a href="#agents">6. Agentic Design</a></li>
+    <li><a href="#rag">7. Retrieval-Augmented Generation (RAG)</a></li>
+    <li><a href="#stack">8. Technology Stack</a></li>
+    <li><a href="#data">9. Data &amp; Feature Engineering</a></li>
+    <li><a href="#eval">10. Evaluation &amp; Success Criteria</a></li>
+    <li><a href="#ui">11. User Interface</a></li>
+    <li><a href="#roadmap-link">12. What Comes Next</a></li>
+  </ol>
+</nav>
+
+<h2 id="problem">1. The Problem</h2>
+<p>
+  In organizations and companies — at any scale — a continuous stream of meetings takes place: formal sessions
+  (board, project steering, client reviews) and informal team conversations (daily standups, ad-hoc coordination).
+  These meetings consume a large share of an organization's most expensive resource — people's attention and time —
+  yet in many cases they produce <strong>no durable, trackable output</strong>.
+</p>
+<p>Failure patterns in this process are well known:</p>
+<ul>
+  <li><strong>Decisions evaporate.</strong> A verbal decision is made, everyone agrees, and a week later no one
+      remembers exactly what was agreed or why.</li>
+  <li><strong>Tasks get lost.</strong> Action items live in personal notes, scatter across chat threads, or are
+      never recorded — ownership and deadlines disappear.</li>
+  <li><strong>Meetings are not searchable.</strong> Months later, when someone asks ("Did we decide to drop
+      feature X?"), there is no way to query past meetings.</li>
+  <li><strong>Tools are fragmented.</strong> Calendar, email, chat, and project management live in separate
+      islands; manually keeping them aligned rarely happens.</li>
+</ul>
+<p>
+  The result is wasted time, forgotten commitments, unclear accountability, and decisions that are never
+  followed up. As organizations move toward agility and automation, the absence of reliable "meeting memory"
+  becomes a measurable productivity barrier.
+</p>
+
+<h2 id="vision">2. Product Vision</h2>
+<table>
+  <tr><th>One-liner</th><td>An extensible organizational AI assistant core, personalized on each organization's data.</td></tr>
+  <tr><th>Technical name</th><td><code>LLM-based Organizational AI Core</code></td></tr>
+  <tr><th>Market name</th><td>Platform for building custom organizational AI assistants</td></tr>
+  <tr><th>First product (this MVP)</th><td>Meeting Assistant — transcript &larr; summary · tasks · RAG · Jira</td></tr>
+</table>
+<p>
+  The strategic bet is that most organizations do not want a generic chatbot; they want an assistant that
+  understands <em>their meetings</em>, <em>their projects</em>, and <em>their tools</em>. The Meeting Assistant is
+  the wedge: a high-frequency, high-pain workflow that proves the core's value and produces the proprietary data
+  (decisions, tasks, org documents) that makes future capabilities defensible.
+</p>
+<p>
+  This means the product is designed as a platform from day one: meeting analysis is only the first
+  <em>skill</em> in a set of skills that run on the same LLM core, the same retrieval layer, and the same data
+  infrastructure.
+</p>
+
+<h2 id="mvp">3. What the MVP Does Today</h2>
+<p>The current, demo-ready product covers a complete end-to-end flow:</p>
+<ul>
+  <li><strong>Flexible input</strong> — Paste a Persian transcript with speaker labels, upload a text file, or
+      provide <strong>audio</strong> (upload <code>mp3/wav/m4a/ogg/webm/flac</code> or record directly with the
+      browser microphone).</li>
+  <li><strong>Audio transcription</strong> — Uploaded or recorded audio is transcribed with Gemini via the same
+      <code>GOOGLE_API_KEY</code>, producing an editable transcript before analysis.</li>
+  <li><strong>Automatic analysis</strong> — Extraction of <strong>summary</strong>, <strong>key points</strong>,
+      explicit <strong>decisions</strong>, and structured <strong>tasks</strong> (title, assignee, deadline,
+      priority).</li>
+  <li><strong>Ask the meeting (RAG)</strong> — A natural-language Q&amp;A layer scoped to one meeting, with source
+      attribution.</li>
+  <li><strong>Smart conversational behavior</strong> — Greetings like "hello" are answered directly without
+      searching the transcript; only real questions trigger retrieval.</li>
+  <li><strong>Jira integration</strong> — Preview and create issues in a Jira Cloud project (issues are written
+      in <strong>English</strong> for clean LTR display in Jira).</li>
+  <li><strong>Facilitator guide</strong> — After each meeting, the assistant offers coaching-style suggestions for
+      running the next session better (details in documents 2 and 3).</li>
+</ul>
+
+<div class="note">
+  <strong>Intentional MVP scope.</strong> This is a demo-ready product, not a finished platform. Live streaming
+  transcription (streaming STT) <em>during</em> a meeting, professional speaker diarization, and multi-user
+  authentication are deliberately out of MVP scope and planned in the roadmap (document 3).
+</div>
+
+<h2 id="academic">4. Academic Framing: An AI-Native Product</h2>
+<p>
+  Beyond a practical tool, this project is structured as a case study in <strong>AI-native product design</strong>
+  — a journey from idea to a deployable MVP for a product whose core value is <em>the AI capability itself</em>,
+  not a conventional application with AI bolted on.
+</p>
+
+<h3>4.1 From Idea to MVP</h3>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart LR
+    I1["۱. ایده‌پردازی<br/>دستیار سازمانی"]
+    I2["۲. تعریف MVP<br/>transcript + RAG + Jira"]
+    I3["۳. داده مصنوعی فارسی"]
+    I4["۴. FastAPI + Pydantic AI"]
+    I5["۵. رابط Astro RTL"]
+    I6["۶. دمو زنده + Jira KAN"]
+    I1 --> I2 --> I3 --> I4 --> I5 --> I6
+</pre>
+</div>
+<p>
+  Each stage reflects a strand of modern AI product engineering: choosing a problem where LLMs have real
+  advantage; defining the smallest feature set that proves value; preparing representative data; selecting a
+  lightweight, typed agent framework; designing a usable interface; and validating against explicit acceptance
+  criteria.
+</p>
+
+<h3>4.2 Why RAG and an Agent Framework</h3>
+<p>Two ideas from contemporary AI practice anchor the design:</p>
+<ul>
+  <li><strong>Retrieval-Augmented Generation (RAG)</strong> grounds assistant answers in actual meeting content
+      instead of the model's parametric memory, keeping responses faithful and attributable.</li>
+  <li><strong>Typed agent orchestration</strong> (with <a href="https://ai.pydantic.dev/">Pydantic AI</a>) gives
+      every model call a strict output contract, so the system produces validated data structures — not free text
+      that downstream code must guess at.</li>
+</ul>
+<p>
+  We deliberately chose a <em>lightweight</em> agent framework over a heavy orchestration stack (such as
+  LangChain): the MVP needs typed outputs and native Gemini integration, not a large dependency surface.
+</p>
+
+<h3>4.3 Product Place in the MLOps / AIOps Lifecycle</h3>
+<p>
+  The MVP focuses on the "build and deliver" phase, but the design anticipates the full operational lifecycle of
+  an AI product — continuous data collection, prompt and model evaluation, deployment, and monitoring. These
+  concerns are defined in the roadmap (document 3) rather than implemented in the MVP — an honest, realistic
+  stance for a thesis deliverable.
+</p>
+<div class="note">
+  <strong>Important note on MLOps in this project:</strong> We do not fine-tune models; we use a hosted LLM.
+  Therefore the operational concern is not model training but <strong>ensuring prompt and output quality over
+  time</strong> — exactly where an AI product quietly degrades.
+</div>
+
+<h2 id="architecture">5. System Architecture</h2>
+<p>
+  The system is a small set of separated services: an Astro frontend (server-side rendered) talking to a FastAPI
+  backend; the backend orchestrates Pydantic AI agents on Gemini, stores meetings in SQLite, keeps embedding
+  vectors in ChromaDB, and integrates with Jira Cloud.
+</p>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart TB
+    subgraph client ["Client — English LTR"]
+        Astro["Astro UI (SSR)"]
+    end
+    subgraph server ["سرور"]
+        FastAPI["FastAPI"]
+        PAI["Pydantic AI Agents"]
+        Gemini["Gemini Flash"]
+        Embed["Google Embeddings"]
+        SQLite["SQLite<br/>meetings.db"]
+        Chroma["ChromaDB<br/>data/chroma/"]
+        Jira["Jira Cloud (KAN)"]
+    end
+    Astro --> FastAPI
+    FastAPI --> PAI
+    PAI --> Gemini
+    FastAPI --> SQLite
+    FastAPI --> Embed --> Chroma
+    PAI --> Chroma
+    FastAPI --> Jira
+</pre>
+</div>
+<p>
+  Full request/response flows, database schemas, API surface, and UI are documented in detail in
+  <a href="02-implementation.html">Document 2 — Technical Implementation</a>.
+</p>
+
+<h2 id="agents">6. Agentic Design</h2>
+<p>
+  Each AI responsibility is encapsulated in a small, single-purpose agent with a typed output contract. This
+  keeps prompts focused, makes outputs testable, and lets the system grow by <em>adding agents</em> rather than
+  enlarging one monolithic prompt.
+</p>
+<table>
+  <tr><th>Agent</th><th>Responsibility</th><th>Status</th></tr>
+  <tr><td><code>analysis_agent</code></td><td>Turn transcript into structured <code>MeetingAnalysis</code> (summary, points, decisions, tasks).</td><td>Implemented</td></tr>
+  <tr><td><code>rag_agent</code></td><td>Answer questions with retrieved context, attribution, without dumping raw transcript.</td><td>Implemented</td></tr>
+  <tr><td><code>facilitation_agent</code></td><td>Coaching suggestions for better meetings, from analysis + participation stats.</td><td>Implemented</td></tr>
+  <tr><td><code>alignment_agent</code></td><td>Compare decisions against uploaded SOW/contract (in-scope vs out-of-scope).</td><td>Planned</td></tr>
+  <tr><td><code>sentiment_agent</code></td><td>Per-speaker tone analysis on transcript text, with ethical/RBAC guards.</td><td>Planned</td></tr>
+</table>
+
+<h2 id="rag">7. Retrieval-Augmented Generation (RAG)</h2>
+<p>
+  On meeting ingest, the transcript is parsed into speech turns, grouped into small chunks (3–5 turns), embedded
+  with <code>gemini-embedding-001</code>, and indexed in ChromaDB under that meeting's ID. A question is answered
+  by retrieving the most relevant chunks and letting <code>rag_agent</code> compose a natural, grounded response.
+</p>
+<div class="mermaid-wrap">
+<pre class="mermaid">
+flowchart LR
+    T["Transcript"] --> C["Chunk<br/>۳–۵ نوبت"]
+    C --> E["gemini-embedding-001"]
+    E --> V["ChromaDB<br/>meeting_chunks"]
+    Q["پرسش کاربر"] --> ST{"small talk?"}
+    ST -->|سلام/hello| CH["chitchat — بدون جستجو"]
+    ST -->|خیر| S["Chroma query top-4"]
+    S --> CTX["Context داخلی"]
+    CTX --> AG["rag_agent"]
+    AG --> A["پاسخ طبیعی + footnote"]
+</pre>
+</div>
+<table>
+  <tr><th>Aspect</th><th>MVP (today)</th><th>Future</th></tr>
+  <tr><td>Search scope</td><td>Single meeting</td><td>Multi-meeting archive + project filter</td></tr>
+  <tr><td>Vector store</td><td><strong>ChromaDB</strong> (embedded, <code>data/chroma/</code>)</td><td>Chroma Cloud / pgvector / Vertex</td></tr>
+  <tr><td>Chunking</td><td>Turn-based</td><td>Semantic with overlap</td></tr>
+</table>
+
+<h2 id="stack">8. Technology Stack</h2>
+<table>
+  <tr><th>Layer</th><th>Choice</th><th>Why</th></tr>
+  <tr><td>Frontend</td><td>Astro (SSR) + lightweight CSS, RTL</td><td>Meeting pages with server-side render; no heavy SPA framework needed.</td></tr>
+  <tr><td>Backend</td><td>FastAPI + Python 3.11+</td><td>Async, typed, excellent glue for AI services.</td></tr>
+  <tr><td>Agent framework</td><td>Pydantic AI</td><td>Typed outputs, native Gemini integration, minimal dependency surface.</td></tr>
+  <tr><td>LLM</td><td><code>google:gemini-3.5-flash</code></td><td>Fast, multimodal (handles audio transcription), cost-effective.</td></tr>
+  <tr><td>Meeting storage</td><td>SQLite (<code>data/meetings.db</code>)</td><td>Durable persistence without ops for MVP; path to PostgreSQL migration.</td></tr>
+  <tr><td>Vector store</td><td>ChromaDB (embedded)</td><td>No separate server; fast HNSW similarity search.</td></tr>
+  <tr><td>Embedding</td><td><code>gemini-embedding-001</code></td><td>Same provider as LLM; high-quality multilingual vectors.</td></tr>
+  <tr><td>Issue tracking</td><td>Jira Cloud (project <code>KAN</code>)</td><td>Industry-standard target for action items.</td></tr>
+</table>
+
+<h2 id="data">9. Data &amp; Feature Engineering</h2>
+<p>
+  The MVP ships with <strong>four</strong> synthetic Persian meetings (standup, planning, sprint review, and client
+  kickoff) so the product is demoable and testable without real recordings. From each transcript, the system
+  extracts a small set of lightweight features that feed retrieval and attribution:
+</p>
+<table>
+  <tr><th>Feature</th><th>Source</th><th>Use</th></tr>
+  <tr><td><code>speaker</code></td><td>Transcript parse</td><td>RAG citation and assignee hints</td></tr>
+  <tr><td><code>timestamp</code></td><td>Parse from <code>[HH:MM]</code></td><td>Temporal ordering of chunks</td></tr>
+  <tr><td><code>turn_count</code></td><td>Chunk metadata</td><td>Context window sizing</td></tr>
+  <tr><td><code>embedding</code></td><td>Google API</td><td>Similarity search</td></tr>
+</table>
+<p>
+  This approach is deliberately simple: instead of a heavy feature pipeline, a few high-impact features were chosen
+  for retrieval quality and answer readability — appropriate for an MVP.
+</p>
+
+<h2 id="eval">10. Evaluation &amp; Success Criteria</h2>
+<p>The MVP is considered successful when the following are demonstrably true:</p>
+<ul>
+  <li>Three synthetic Persian meetings are processed end-to-end.</li>
+  <li>Summary and tasks are produced at acceptable quality.</li>
+  <li>At least three RAG questions receive natural answers with source footnotes.</li>
+  <li>Audio transcription (upload or record) flows into the same analysis pipeline.</li>
+  <li>At least one Jira issue is created.</li>
+  <li>The UI is fully English and left-to-right.</li>
+  <li>The automated test suite is green — <strong>150 passing unit tests</strong> (13 additional tests skip without
+      optional/live credentials) plus a <strong>13-test live API and integration suite</strong>.</li>
+</ul>
+<h3>Hypothetical A/B Test (for periodic reporting)</h3>
+<p>
+  A hypothetical A/B evaluation frames the value question for academic reporting:
+</p>
+<table>
+  <tr><th>Version</th><th>Change</th><th>Hypothesis</th></tr>
+  <tr><td>A (control)</td><td>Summary + tasks only, no RAG in UI</td><td>Baseline</td></tr>
+  <tr><td>B (treatment)</td><td>RAG tab enabled</td><td>Faster discovery of past decisions and higher Jira task conversion</td></tr>
+</table>
+<p><strong>Metrics:</strong> time to answer · citation accuracy · task-to-Jira issue conversion rate.</p>
+
+<h2 id="ui">11. User Interface</h2>
+<p>English LTR interface — technical details in <a href="02-implementation.html">Document 2</a>.</p>
+<div class="screenshot-grid">
+  <figure>
+    <img src="../screenshots/home.png" alt="Meeting Assistant home page" loading="lazy" />
+    <figcaption>Home — ingest, archive, and sample meetings</figcaption>
+  </figure>
+  <figure>
+    <img src="../screenshots/meeting-summary.png" alt="Meeting detail page" loading="lazy" />
+    <figcaption>Meeting — summary, tasks, RAG, Jira</figcaption>
+  </figure>
+</div>
+
+<h2 id="roadmap-link">12. What Comes Next</h2>
+<div class="future">
+  The product roadmap (sprints 2–6+), advanced differentiating capabilities — facilitator guide, SOW/contract
+  alignment, sentiment analysis, multi-meeting organizational memory, and the MLOps quality cycle — are described
+  in <a href="03-roadmap-and-future-work.html">Document 3 — Roadmap &amp; Future Work</a>.
+  Engineering details of the current system are in <a href="02-implementation.html">Document 2 — Technical Implementation</a>.
+</div>
+
+</body>
+</html>

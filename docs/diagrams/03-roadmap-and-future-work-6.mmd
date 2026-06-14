@@ -1,0 +1,5 @@
+flowchart LR
+    D["داده جدید /<br/>golden transcripts"] --> T["prompt tuning /<br/>eval"]
+    T --> DEP["استقرار"]
+    DEP --> MON["پایش کیفیت"]
+    MON --> D
