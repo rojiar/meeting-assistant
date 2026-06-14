@@ -1,46 +1,111 @@
-# Project documentation — Meeting Assistant
+# Enterprise Meeting Assistant
 
-## Index
+English UI and documentation for an AI-native meeting assistant MVP. Analyze meeting transcripts (text or audio), extract summaries and tasks, ask questions with RAG, and create Jira issues.
 
-Three main documents in **English** (LTR) — each has a matching PDF in `pdf/`:
+**Meetings DB:** SQLite (`data/meetings.db`) — transcripts, summaries, tasks. Legacy JSON in `data/meetings/` migrates on first start.
 
-| File | Content |
-|------|---------|
-| [01-project-overview.html](01-project-overview.html) | **Project overview & vision** |
-| [02-implementation.html](02-implementation.html) | **Technical implementation** |
-| [03-roadmap-and-future-work.html](03-roadmap-and-future-work.html) | **Roadmap & future work** |
+**Vector DB:** [ChromaDB](https://www.trychroma.com/) (embedded, local — `data/chroma/`).
 
-Additional resources:
+## Prerequisites
 
-| File | Content |
-|------|---------|
-| [CHANGELOG.md](CHANGELOG.md) | **Change history** — update with each feature |
-| [screenshots/](screenshots/) | **UI/UX screenshots** — home, meeting, tasks, settings |
-| [superpowers/specs/2026-05-26-meeting-assistant-design.md](superpowers/specs/2026-05-26-meeting-assistant-design.md) | Design spec |
-| [superpowers/specs/future-sprints-roadmap.md](superpowers/specs/future-sprints-roadmap.md) | Sprint roadmap (Markdown) |
+- Python 3.11+
+- Node.js 20+
+- [uv](https://docs.astral.sh/uv/) for Python deps (or `pip install -r backend/requirements.txt`)
+- `.env` in the repo root (copy from `.env.example`)
+- *(optional)* [Pydantic Logfire](https://logfire.pydantic.dev) — org `meetingassistant` / project `starter-project` (EU)
 
-## View HTML
-
-Open `.html` files in a browser (LTR, Mermaid diagrams).
-
-## PDF and SVG (automated export)
+### Environment
 
 ```bash
-chmod +x scripts/export-docs.sh
+cp .env.example .env
+# Edit: GOOGLE_API_KEY, JIRA_* (optional), LOGFIRE_TOKEN (optional)
+```
+
+### Logfire (one-time, optional)
+
+```bash
+uv sync
+uv run logfire --region eu auth
+uv run logfire --region eu projects use --org meetingassistant starter-project
+```
+
+Add the write token from [logfire-eu.pydantic.dev](https://logfire-eu.pydantic.dev) to `.env` as `LOGFIRE_TOKEN`.
+
+## Tests
+
+**Unit tests** (mocked APIs, no network):
+
+```bash
+chmod +x scripts/run-tests.sh
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 ./scripts/run-tests.sh
+```
+
+**Live tests** (real Gemini / Jira — require valid `.env`):
+
+```bash
+./scripts/run-live-tests.sh
+# or both: ./scripts/run-all-tests.sh
+```
+
+**Frontend build:**
+
+```bash
+cd frontend && npm install && npm run build
+```
+
+## Run
+
+Single terminal — backend + frontend:
+
+```bash
+chmod +x scripts/run-dev.sh
+./scripts/run-dev.sh
+```
+
+Or two terminals:
+
+```bash
+./scripts/run-backend.sh    # http://127.0.0.1:8000
+./scripts/run-frontend.sh   # http://localhost:4321
+```
+
+Open **http://localhost:4321**
+
+## Documentation
+
+Three main documents in `docs/` — matching PDFs in `docs/pdf/`:
+
+| File | Content |
+|------|---------|
+| `docs/01-project-overview.html` | Project overview & vision |
+| `docs/02-implementation.html` | Technical implementation |
+| `docs/03-roadmap-and-future-work.html` | Roadmap & future work |
+
+Other resources:
+
+- `docs/README.md` — doc index
+- `docs/CHANGELOG.md` — change history
+- `docs/superpowers/specs/2026-05-26-meeting-assistant-design.md` — engineering spec
+
+Regenerate PDFs and Mermaid SVGs:
+
+```bash
 ./scripts/export-docs.sh
 ```
 
-| Output | Path |
-|--------|------|
-| **PDF** (English LTR) | [docs/pdf/](pdf/) |
-| **SVG** (Mermaid diagrams) | [docs/diagrams/](diagrams/) |
-| **UI screenshots** (Playwright) | [docs/screenshots/](screenshots/) |
+## Stack
 
-To refresh UI screenshots (backend + frontend must be running):
+| Layer | Choice |
+|-------|--------|
+| Backend | FastAPI, Pydantic AI agents |
+| Frontend | Astro SSR (English LTR) |
+| Embeddings | `gemini-embedding-001` |
+| LLM | `google:gemini-3.5-flash` |
+| Observability | Logfire (optional) |
+
+## Smoke check
 
 ```bash
-chmod +x scripts/capture-ui-screenshots.sh
-./scripts/capture-ui-screenshots.sh
+curl -s http://127.0.0.1:8000/api/health
+# Expected: {"status":"ok", ...}
 ```
-
-Requirements: Node.js 20+, internet (first run for npm and fonts).
