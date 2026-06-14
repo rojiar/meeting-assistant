@@ -1,0 +1,42 @@
+---
+import { t } from '../i18n/messages';
+
+interface Props {
+  title?: string;
+}
+
+const { title } = Astro.props;
+const pageTitle = title ?? t.appName;
+---
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="locale-en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={t.metaDescription} />
+    <title>{pageTitle}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles/global.css" />
+  </head>
+  <body data-locale="en">
+    <header class="site-header">
+      <a href="/" class="brand">
+        <span class="brand-icon" aria-hidden="true">◇</span>
+        {t.appName}
+      </a>
+      <nav>
+        <a href="/">{t.nav.home}</a>
+        <a href="/tasks">{t.nav.tasks}</a>
+        <a href="/settings">{t.nav.settings}</a>
+      </nav>
+    </header>
+    <main class="container">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      {t.footer}
+    </footer>
+  </body>
+</html>

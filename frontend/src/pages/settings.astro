@@ -1,0 +1,118 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { t } from '../i18n/messages';
+---
+<Layout title={t.settings.title}>
+  <section class="hero" style="padding-top:1rem">
+    <h1>{t.settings.heroTitle}</h1>
+    <p>{t.settings.heroText}</p>
+  </section>
+
+  <div id="health" class="card"></div>
+
+  <section class="card">
+    <h2>{t.settings.jiraMap}</h2>
+    <p class="muted">{t.settings.jiraMapHint}</p>
+    <form id="map-form" class="grid-2" style="margin-top:1rem">
+      <div>
+        <label for="speaker-name">{t.settings.speakerName}</label>
+        <input id="speaker-name" type="text" placeholder={t.settings.speakerPlaceholder} required />
+      </div>
+      <div>
+        <label for="jira-account">{t.settings.jiraAccount}</label>
+        <input id="jira-account" type="text" dir="ltr" placeholder="712020:..." required />
+      </div>
+      <div style="grid-column:1/-1">
+        <label for="jira-display">{t.settings.jiraDisplay}</label>
+        <input id="jira-display" type="text" dir="ltr" placeholder="Sara M." />
+      </div>
+      <button type="submit" class="btn btn-sm">{t.settings.saveMap}</button>
+    </form>
+    <div id="map-list" class="map-table"></div>
+  </section>
+
+  <section class="card">
+    <h2>{t.settings.envVars}</h2>
+    <pre dir="ltr" style="background:#0f172a;padding:1.25rem;border-radius:10px;overflow:auto;font-size:0.85rem;border:1px solid var(--border)"><code>GOOGLE_API_KEY=...
+GEMINI_MODEL=google:gemini-3.5-flash
+MAX_AUDIO_BYTES=20971520
+JIRA_SITE_URL=https://your.atlassian.net
+JIRA_PROJECT_KEY=KAN
+JIRA_EMAIL=...
+JIRA_API_TOKEN=...</code></pre>
+  </section>
+
+  <section class="card">
+    <h2>{t.settings.localRun}</h2>
+    <ul class="point-list">
+      <li><code dir="ltr">./scripts/run-backend.sh</code></li>
+      <li><code dir="ltr">./scripts/run-frontend.sh</code></li>
+      <li><code dir="ltr">http://localhost:4321</code></li>
+    </ul>
+  </section>
+</Layout>
+
+<script>
+  import { api, escapeHtml } from '../lib/api';
+  import { t } from '../i18n/messages';
+
+  const healthEl = document.getElementById('health')!;
+  const mapList = document.getElementById('map-list')!;
+
+  api.health().then((h) => {
+    healthEl.innerHTML = `
+      <h2>${t.settings.serviceStatus}</h2>
+      <div class="status-pills" style="justify-content:flex-start;margin-top:0.75rem">
+        <span class="pill ok">API ${h.status}</span>
+        <span class="pill ${h.google_api ? 'ok' : 'warn'}">Google ${h.google_api ? '✓' : '✗'}</span>
+        <span class="pill ${h.jira_configured ? 'ok' : 'warn'}">Jira ${h.jira_configured ? '✓' : '✗'}</span>
+      </div>
+      <p class="muted" style="margin-top:1rem" dir="ltr">${h.database ?? ''}</p>`;
+  }).catch(() => {
+    healthEl.innerHTML = `<div class="alert alert-error">${t.settings.backendOffline}</div>`;
+  });
+
+  async function loadMap() {
+    try {
+      const rows = await api.listAssigneeMap();
+      if (!rows.length) {
+        mapList.innerHTML = `<p class="muted">${t.settings.noMaps}</p>`;
+        return;
+      }
+      mapList.innerHTML = `
+        <table class="task-table">
+          <thead><tr><th>${t.settings.speakerCol}</th><th>accountId</th><th></th></tr></thead>
+          <tbody>
+            ${rows.map((r) => `
+              <tr>
+                <td>${escapeHtml(r.speaker_name)}</td>
+                <td dir="ltr"><code>${escapeHtml(r.jira_account_id)}</code></td>
+                <td><button type="button" class="btn btn-ghost btn-sm map-del" data-name="${escapeHtml(r.speaker_name)}">${t.common.delete}</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+      mapList.querySelectorAll('.map-del').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const name = (btn as HTMLButtonElement).dataset.name!;
+          await api.deleteAssigneeMap(name);
+          loadMap();
+        });
+      });
+    } catch {
+      mapList.innerHTML = `<p class="muted">${t.settings.loadError}</p>`;
+    }
+  }
+
+  document.getElementById('map-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await api.upsertAssigneeMap({
+      speaker_name: (document.getElementById('speaker-name') as HTMLInputElement).value,
+      jira_account_id: (document.getElementById('jira-account') as HTMLInputElement).value,
+      jira_display_name: (document.getElementById('jira-display') as HTMLInputElement).value,
+    });
+    (document.getElementById('map-form') as HTMLFormElement).reset();
+    loadMap();
+  });
+
+  loadMap();
+</script>

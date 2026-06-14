@@ -1,0 +1,93 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { t } from '../i18n/messages';
+---
+<Layout title={t.tasks.title}>
+  <section class="hero" style="padding-top:1rem">
+    <h1>{t.tasks.heroTitle}</h1>
+    <p>{t.tasks.heroText}</p>
+  </section>
+
+  <div id="error" class="alert alert-error hidden"></div>
+
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2>{t.tasks.listTitle}</h2>
+        <p class="muted" id="task-count">{t.common.loading}</p>
+      </div>
+      <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;cursor:pointer">
+        <input type="checkbox" id="open-only" />
+        {t.tasks.openOnly}
+      </label>
+    </div>
+    <div id="tasks-table-wrap"></div>
+  </section>
+</Layout>
+
+<script>
+  import { api, escapeHtml } from '../lib/api';
+  import type { MeetingType } from '../lib/api';
+  import { t } from '../i18n/messages';
+  import { formatDate, meetingTypeLabel, priorityLabel } from '../i18n';
+
+  const errorEl = document.getElementById('error')!;
+  const wrap = document.getElementById('tasks-table-wrap')!;
+  const countEl = document.getElementById('task-count')!;
+  const openOnlyEl = document.getElementById('open-only') as HTMLInputElement;
+
+  function showError(msg: string) {
+    errorEl.textContent = msg;
+    errorEl.classList.remove('hidden');
+  }
+
+  async function loadTasks() {
+    try {
+      const items = await api.listTasks(openOnlyEl.checked);
+      countEl.textContent = t.tasks.count(items.length);
+      if (!items.length) {
+        wrap.innerHTML = `<p class="muted">${t.tasks.empty}</p>`;
+        return;
+      }
+      wrap.innerHTML = `
+        <table class="task-table">
+          <thead>
+            <tr>
+              <th>${t.tasks.taskCol}</th>
+              <th>${t.tasks.meetingCol}</th>
+              <th>${t.tasks.assigneeCol}</th>
+              <th>${t.tasks.deadlineCol}</th>
+              <th>${t.tasks.priorityCol}</th>
+              <th>${t.tasks.jiraCol}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items
+              .map((item) => {
+                const type = meetingTypeLabel((item.meeting_type ?? 'general') as MeetingType);
+                const jiraCell = item.jira_key
+                  ? `<code dir="ltr">${escapeHtml(item.jira_key)}</code>`
+                  : `<span class="muted">${t.common.dash}</span>`;
+                return `<tr>
+                  <td><strong>${escapeHtml(item.title)}</strong></td>
+                  <td>
+                    <a href="/meeting/${item.meeting_id}">${escapeHtml(item.meeting_title)}</a>
+                    <div class="muted" style="font-size:0.78rem">${type}${item.project_key ? ' · ' + escapeHtml(item.project_key) : ''}</div>
+                  </td>
+                  <td>${escapeHtml(item.assignee ?? t.common.dash)}</td>
+                  <td>${escapeHtml(item.deadline ?? t.common.dash)}</td>
+                  <td><span class="badge badge-${item.priority}">${priorityLabel(item.priority)}</span></td>
+                  <td>${jiraCell}</td>
+                </tr>`;
+              })
+              .join('')}
+          </tbody>
+        </table>`;
+    } catch (e) {
+      showError(String(e));
+    }
+  }
+
+  openOnlyEl.addEventListener('change', loadTasks);
+  loadTasks();
+</script>

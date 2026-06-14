@@ -1,0 +1,461 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { t } from '../../i18n/messages';
+import { formatDate, meetingTypeLabel, priorityLabel } from '../../i18n';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const backendUrl = import.meta.env.PUBLIC_BACKEND_URL ?? 'http://127.0.0.1:8000';
+
+let meeting: Record<string, unknown> | null = null;
+let loadError: string | null = null;
+
+if (!id) {
+  loadError = t.meeting.invalidId;
+} else {
+  try {
+    const res = await fetch(`${backendUrl}/api/meetings/${id}`);
+    if (res.ok) {
+      meeting = await res.json();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      loadError = (err as { detail?: string }).detail ?? t.meeting.notFound;
+    }
+  } catch {
+    loadError = t.meeting.backendDown;
+  }
+}
+
+const analysis = meeting?.analysis as {
+  summary: string;
+  key_points: string[];
+  decisions: string[];
+  tasks: {
+    title: string;
+    title_en?: string;
+    assignee?: string;
+    deadline?: string;
+    priority: string;
+    jira_key?: string;
+  }[];
+} | undefined;
+
+const tags = (meeting?.tags as string[]) ?? [];
+const projectKey = (meeting?.project_key as string) ?? '';
+
+const meetingType = (meeting?.meeting_type as string) ?? 'general';
+const typeLabel = meetingTypeLabel(meetingType);
+const taskCount = analysis?.tasks?.length ?? 0;
+const exportUrl = meeting ? `${backendUrl}/api/meetings/${meeting.id}/export` : '#';
+const createdAt = meeting ? formatDate(meeting.created_at as string) : '';
+---
+
+<Layout title={meeting ? `${meeting.title as string} — ${t.meeting.titleSuffix}` : t.meeting.tabSummary}>
+  {loadError && (
+    <div class="card alert alert-error">
+      <p>{loadError}</p>
+      <a href="/" class="btn btn-outline" style="margin-top:1rem;display:inline-flex">{t.meeting.backHome}</a>
+    </div>
+  )}
+
+  {meeting && analysis && (
+    <div id="meeting-app" data-meeting-id={meeting.id as string}>
+      <div class="meeting-header">
+        <span class="badge badge-type">{typeLabel}</span>
+        <h1>{meeting.title as string}</h1>
+        <p class="muted">{t.meeting.idLabel}: <code dir="ltr">{meeting.id as string}</code> · {createdAt}</p>
+        <div class="meeting-actions">
+          <a href={exportUrl} class="btn btn-outline btn-sm" download>{t.meeting.downloadMd}</a>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-copy-summary">{t.meeting.copySummary}</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-delete" style="color:var(--danger)">{t.meeting.deleteMeeting}</button>
+          <a href="/" class="btn btn-ghost btn-sm">{t.meeting.home}</a>
+        </div>
+        {(tags.length > 0 || projectKey) && (
+          <div class="meta-row" style="margin-top:0.75rem">
+            {projectKey && <span class="badge badge-type" dir="ltr">{projectKey}</span>}
+            {tags.map((tag) => <span class="badge badge-type">{tag}</span>)}
+          </div>
+        )}
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat"><div class="num">{taskCount}</div><div class="lbl">{t.meeting.statTasks}</div></div>
+        <div class="stat"><div class="num">{analysis.key_points?.length ?? 0}</div><div class="lbl">{t.meeting.statPoints}</div></div>
+        <div class="stat"><div class="num">{analysis.decisions?.length ?? 0}</div><div class="lbl">{t.meeting.statDecisions}</div></div>
+      </div>
+
+      <div id="error" class="alert alert-error hidden"></div>
+      <div id="success" class="alert alert-success hidden"></div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="summary" type="button">{t.meeting.tabSummary}</button>
+        <button class="tab" data-tab="tasks" type="button">{t.meeting.tabTasks} ({taskCount})</button>
+        <button class="tab" data-tab="rag" type="button">{t.meeting.tabAsk}</button>
+        <button class="tab" data-tab="facilitation" type="button">{t.meeting.tabFacilitation}</button>
+      </div>
+
+      <section id="panel-summary" class="card tab-panel">
+        <h2>{t.meeting.summaryTitle}</h2>
+        <div class="summary-box" id="summary-text">{analysis.summary}</div>
+        <h2 style="margin-top:1.5rem">{t.meeting.keyPoints}</h2>
+        <ul class="point-list">
+          {analysis.key_points?.length
+            ? analysis.key_points.map((p) => <li>{p}</li>)
+            : <li class="muted">{t.common.dash}</li>}
+        </ul>
+        <h2 style="margin-top:1.25rem">{t.meeting.decisions}</h2>
+        <ul class="point-list">
+          {analysis.decisions?.length
+            ? analysis.decisions.map((d) => <li>{d}</li>)
+            : <li class="muted">{t.common.dash}</li>}
+        </ul>
+
+        <div class="meta-edit">
+          <h2>{t.meeting.tagsProject}</h2>
+          <label for="edit-tags">{t.meeting.tagsLabel}</label>
+          <input id="edit-tags" type="text" value={tags.join(', ')} />
+          <label for="edit-project">{t.meeting.projectKey}</label>
+          <input id="edit-project" type="text" dir="ltr" value={projectKey} placeholder="KAN" />
+          <button type="button" class="btn btn-outline btn-sm" id="btn-save-meta">{t.common.save}</button>
+        </div>
+
+        <h2 style="margin-top:1.5rem">{t.meeting.speakers}</h2>
+        <div id="speaker-stats"><p class="muted">{t.common.loading}</p></div>
+      </section>
+
+      <section id="panel-tasks" class="card tab-panel hidden">
+        <div class="card-header">
+          <div>
+            <h2>{t.meeting.extractedTasks}</h2>
+            <p class="muted">{t.meeting.jiraHint}</p>
+          </div>
+        </div>
+        {analysis.tasks?.length ? (
+          <>
+            <table class="task-table">
+              <thead>
+                <tr>
+                  <th style="width:2.5rem"><input type="checkbox" id="select-all-tasks" checked title={t.meeting.selectAll} /></th>
+                  <th>{t.meeting.titleCol}</th>
+                  <th>{t.tasks.assigneeCol}</th>
+                  <th>{t.tasks.deadlineCol}</th>
+                  <th>{t.tasks.priorityCol}</th>
+                  <th>{t.tasks.jiraCol}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {analysis.tasks.map((task, i) => (
+                  <tr data-task-index={i}>
+                    <td><input type="checkbox" class="task-cb" data-index={i} checked={!task.jira_key} disabled={!!task.jira_key} /></td>
+                    <td>
+                      <strong>{task.title}</strong>
+                      {task.title_en && <div class="muted" style="font-size:0.8rem;margin-top:0.2rem" dir="ltr">{task.title_en}</div>}
+                    </td>
+                    <td>{task.assignee ?? t.common.dash}</td>
+                    <td>{task.deadline ?? t.common.dash}</td>
+                    <td>
+                      <span class={`badge badge-${task.priority}`}>{priorityLabel(task.priority)}</span>
+                    </td>
+                    <td>{task.jira_key ? <code dir="ltr">{task.jira_key}</code> : t.common.dash}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div class="jira-panel">
+              <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <button class="btn btn-outline btn-sm" id="btn-preview" type="button">{t.meeting.previewJira}</button>
+                <button class="btn btn-sm" id="btn-jira" type="button">{t.meeting.sendSelected}</button>
+              </div>
+              <pre id="jira-preview" class="ltr hidden"></pre>
+            </div>
+          </>
+        ) : (
+          <p class="muted">{t.meeting.noTasks}</p>
+        )}
+      </section>
+
+      <section id="panel-rag" class="card tab-panel hidden">
+        <h2>{t.meeting.askTitle}</h2>
+        <p class="muted">{t.meeting.askHint}</p>
+        <div class="suggest-chips">
+          <button type="button" class="chip suggest-q">{t.meeting.suggest1}</button>
+          <button type="button" class="chip suggest-q">{t.meeting.suggest2}</button>
+          <button type="button" class="chip suggest-q">{t.meeting.suggest3}</button>
+        </div>
+        <div id="chat" class="chat-box">
+          <div class="chat-empty">{t.meeting.chatEmpty}</div>
+        </div>
+        <form id="ask-form" class="ask-form">
+          <input id="question" type="text" placeholder={t.meeting.askPlaceholder} autocomplete="off" />
+          <button class="btn" type="submit" id="ask-btn">{t.meeting.askBtn}</button>
+        </form>
+      </section>
+
+      <section id="panel-facilitation" class="card tab-panel hidden">
+        <h2>{t.meeting.facilitationTitle}</h2>
+        <p class="muted">{t.meeting.facilitationHint}</p>
+        <div id="facilitation-loading" class="muted">{t.meeting.facilitationLoad}</div>
+        <div id="facilitation-content" class="hidden">
+          <div id="facilitation-score" class="facilitation-score"></div>
+          <p id="facilitation-summary" class="summary-box"></p>
+          <h3>{t.meeting.wentWell}</h3>
+          <ul id="facilitation-well" class="point-list"></ul>
+          <h3>{t.meeting.improvements}</h3>
+          <ul id="facilitation-improve" class="point-list"></ul>
+          <h3>{t.meeting.nextAgenda}</h3>
+          <ul id="facilitation-agenda" class="point-list"></ul>
+          <h3>{t.meeting.timebox}</h3>
+          <div id="facilitation-timebox" class="summary-box"></div>
+        </div>
+      </section>
+    </div>
+  )}
+</Layout>
+
+<script>
+  import { api } from '../../lib/api';
+  import { t } from '../../i18n/messages';
+
+  const app = document.getElementById('meeting-app');
+  if (app) {
+    const meetingId = app.dataset.meetingId!;
+    const errorEl = document.getElementById('error');
+    const successEl = document.getElementById('success');
+    const chat = document.getElementById('chat')!;
+
+    function showError(msg: string) {
+      if (errorEl) {
+        errorEl.textContent = msg;
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    function showSuccess(msg: string) {
+      if (successEl) {
+        successEl.textContent = msg;
+        successEl.classList.remove('hidden');
+        setTimeout(() => successEl.classList.add('hidden'), 6000);
+      }
+    }
+
+    function switchTab(name: string) {
+      document.querySelectorAll('.tab').forEach((tab) => {
+        tab.classList.toggle('active', (tab as HTMLElement).dataset.tab === name);
+      });
+      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
+      document.getElementById(`panel-${name}`)?.classList.remove('hidden');
+    }
+
+    document.querySelectorAll('.tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const name = (tab as HTMLElement).dataset.tab ?? 'summary';
+        switchTab(name);
+        if (name === 'facilitation') loadFacilitation();
+      });
+    });
+
+    let facilitationLoaded = false;
+    async function loadFacilitation() {
+      if (facilitationLoaded) return;
+      const loading = document.getElementById('facilitation-loading');
+      const content = document.getElementById('facilitation-content');
+      if (!loading || !content) return;
+      loading.textContent = t.meeting.facilitationGenerating;
+      loading.classList.remove('hidden');
+      content.classList.add('hidden');
+      try {
+        const report = await api.getFacilitation(meetingId);
+        facilitationLoaded = true;
+        loading.classList.add('hidden');
+        content.classList.remove('hidden');
+
+        const scoreEl = document.getElementById('facilitation-score');
+        if (scoreEl && report.facilitator_score != null) {
+          scoreEl.innerHTML = `<span class="badge badge-type">${t.meeting.scoreLabel(report.facilitator_score)}</span>`;
+        }
+
+        const setList = (id: string, items: string[]) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.innerHTML = items.length
+            ? items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
+            : `<li class="muted">${t.common.dash}</li>`;
+        };
+
+        const summaryEl = document.getElementById('facilitation-summary');
+        if (summaryEl) summaryEl.textContent = report.coaching_summary || t.common.dash;
+        setList('facilitation-well', report.what_went_well);
+        setList('facilitation-improve', report.improvements);
+        setList('facilitation-agenda', report.next_meeting_agenda);
+        const timeboxEl = document.getElementById('facilitation-timebox');
+        if (timeboxEl) timeboxEl.textContent = report.timebox_suggestion || t.common.dash;
+      } catch (e) {
+        loading.textContent = String(e);
+        showError(String(e));
+      }
+    }
+
+    document.getElementById('btn-copy-summary')?.addEventListener('click', async () => {
+      const text = document.getElementById('summary-text')?.textContent ?? '';
+      try {
+        await navigator.clipboard.writeText(text);
+        showSuccess(t.meeting.copied);
+      } catch {
+        showError(t.meeting.copyFailed);
+      }
+    });
+
+    function getSelectedTaskIndices(): number[] {
+      return Array.from(document.querySelectorAll<HTMLInputElement>('.task-cb:checked'))
+        .map((cb) => parseInt(cb.dataset.index ?? '0', 10))
+        .filter((n) => !Number.isNaN(n));
+    }
+
+    const selectAll = document.getElementById('select-all-tasks') as HTMLInputElement | null;
+    selectAll?.addEventListener('change', () => {
+      document.querySelectorAll<HTMLInputElement>('.task-cb').forEach((cb) => {
+        cb.checked = selectAll.checked;
+      });
+    });
+
+    document.getElementById('btn-preview')?.addEventListener('click', async () => {
+      try {
+        const preview = await api.jiraPreview(meetingId);
+        const indices = getSelectedTaskIndices();
+        const filtered = preview.issues.filter((i) => indices.includes(i.task_index));
+        const pre = document.getElementById('jira-preview');
+        if (pre) {
+          pre.textContent = JSON.stringify(filtered.length ? filtered : preview.issues, null, 2);
+          pre.classList.remove('hidden');
+        }
+      } catch (e) {
+        showError(String(e));
+      }
+    });
+
+    document.getElementById('btn-jira')?.addEventListener('click', async () => {
+      const indices = getSelectedTaskIndices();
+      if (!indices.length) {
+        showError(t.meeting.selectOneTask);
+        return;
+      }
+      const btn = document.getElementById('btn-jira') as HTMLButtonElement;
+      btn.disabled = true;
+      try {
+        const result = await api.jiraCreate(meetingId, indices);
+        showSuccess(t.meeting.created(result.created.map((c) => c.key).join(' · ')));
+        setTimeout(() => location.reload(), 1500);
+      } catch (e) {
+        showError(String(e));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('btn-save-meta')?.addEventListener('click', async () => {
+      const tagsRaw = (document.getElementById('edit-tags') as HTMLInputElement).value;
+      const project_key = (document.getElementById('edit-project') as HTMLInputElement).value;
+      const tags = tagsRaw.split(',').map((tag) => tag.trim()).filter(Boolean);
+      try {
+        await api.updateMeeting(meetingId, { tags, project_key });
+        showSuccess(t.meeting.saved);
+        setTimeout(() => location.reload(), 800);
+      } catch (e) {
+        showError(String(e));
+      }
+    });
+
+    document.getElementById('btn-delete')?.addEventListener('click', async () => {
+      if (!confirm(t.meeting.confirmDelete)) return;
+      try {
+        await api.deleteMeeting(meetingId);
+        window.location.href = "";
+      } catch (e) {
+        showError(String(e));
+      }
+    });
+
+    async function loadSpeakers() {
+      const el = document.getElementById('speaker-stats');
+      if (!el) return;
+      try {
+        const stats = await api.getSpeakers(meetingId);
+        if (!stats.length) {
+          el.innerHTML = `<p class="muted">${t.common.dash}</p>`;
+          return;
+        }
+        el.innerHTML = stats
+          .map(
+            (s) => `
+          <div class="speaker-bar">
+            <span style="min-width:4rem">${escapeHtml(s.speaker)}</span>
+            <div class="bar"><div class="fill" style="width:${s.percent}%"></div></div>
+            <span class="muted">${s.percent}% · ${s.turns} ${t.meeting.turns}</span>
+          </div>`
+          )
+          .join('');
+      } catch {
+        el.innerHTML = `<p class="muted">${t.common.dash}</p>`;
+      }
+    }
+    loadSpeakers();
+
+    function appendChat(role: 'user' | 'assistant' | 'error', html: string) {
+      const empty = chat.querySelector('.chat-empty');
+      if (empty) empty.remove();
+      const div = document.createElement('div');
+      div.className = `chat-msg ${role}`;
+      div.innerHTML = html;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendQuestion(q: string) {
+      if (!q.trim()) return;
+      appendChat('user', escapeHtml(q));
+      const askBtn = document.getElementById('ask-btn') as HTMLButtonElement;
+      askBtn.disabled = true;
+      try {
+        const ans = await api.ask(meetingId, q);
+        let footnotes = '';
+        if (ans.used_meeting_context && ans.sources?.length) {
+          const cites = ans.sources
+            .map((s) => {
+              const quote = s.excerpt || s.text || '';
+              return quote
+                ? `<span class="cite-item"><strong>${escapeHtml(s.speaker)}</strong>: ${escapeHtml(quote)}</span>`
+                : `<span class="cite-item"><strong>${escapeHtml(s.speaker)}</strong></span>`;
+            })
+            .join('');
+          footnotes = `<div class="cite-footnotes">${t.meeting.sources}: ${cites}</div>`;
+        }
+        appendChat('assistant', `<p>${escapeHtml(ans.answer)}</p>${footnotes}`);
+      } catch (err) {
+        appendChat('error', escapeHtml(String(err)));
+      } finally {
+        askBtn.disabled = false;
+      }
+    }
+
+    function escapeHtml(s: string) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+    }
+
+    document.getElementById('ask-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('question') as HTMLInputElement;
+      const q = input.value.trim();
+      if (!q) return;
+      input.value = '';
+      await sendQuestion(q);
+    });
+
+    document.querySelectorAll('.suggest-q').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const q = chip.textContent ?? '';
+        sendQuestion(q);
+      });
+    });
+  }
+</script>

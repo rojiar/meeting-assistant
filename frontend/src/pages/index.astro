@@ -1,0 +1,329 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { t } from '../i18n/messages';
+---
+<Layout title={t.home.title}>
+  <section class="hero">
+    <h1>{t.home.heroTitle}</h1>
+    <p>{t.home.heroText}</p>
+    <div id="status-pills" class="status-pills"></div>
+  </section>
+
+  <div id="error" class="alert alert-error hidden"></div>
+
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2>{t.home.recentMeetings}</h2>
+        <p class="muted">{t.home.searchHint}</p>
+      </div>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <input type="search" id="search-input" placeholder={t.home.searchPlaceholder} autocomplete="off" />
+    </div>
+    <div class="filter-row">
+      <select id="filter-type">
+        <option value="">{t.home.allTypes}</option>
+        <option value="general">{t.meetingTypes.general}</option>
+        <option value="standup">{t.meetingTypes.standup}</option>
+        <option value="planning">{t.meetingTypes.planning}</option>
+        <option value="review">{t.meetingTypes.review}</option>
+      </select>
+      <input type="text" id="filter-project" placeholder={t.home.projectPlaceholder} dir="ltr" />
+      <input type="text" id="filter-tag" placeholder={t.home.tagPlaceholder} />
+    </div>
+    <div id="meetings-list" class="meeting-grid"></div>
+  </section>
+
+  <section class="card">
+    <h2>{t.home.sampleMeetings}</h2>
+    <p class="muted">{t.home.sampleHint}</p>
+    <div id="synthetic-list" class="meeting-grid cols-3"></div>
+  </section>
+
+  <section class="card">
+    <h2>{t.home.newTranscript}</h2>
+    <p class="muted">
+      {t.home.transcriptHint} <code dir="ltr">[14:02] name: text</code>
+    </p>
+    <form id="upload-form">
+      <div class="grid-2" style="margin-bottom: 0.75rem;">
+        <div>
+          <label for="title">{t.home.titleOptional}</label>
+          <input id="title" name="title" type="text" placeholder={t.home.titlePlaceholder} />
+        </div>
+        <div>
+          <label for="meeting-type">{t.home.meetingType}</label>
+          <select id="meeting-type" name="meeting_type">
+            <option value="general">{t.meetingTypes.general}</option>
+            <option value="standup">{t.meetingTypes.standup}</option>
+            <option value="planning">{t.meetingTypes.planning}</option>
+            <option value="review">{t.meetingTypes.review}</option>
+          </select>
+        </div>
+        <div>
+          <label for="project-key">{t.home.projectOptional}</label>
+          <input id="project-key" name="project_key" type="text" placeholder="KAN" dir="ltr" />
+        </div>
+      </div>
+      <label for="tags">{t.home.tags}</label>
+      <input id="tags" name="tags" type="text" placeholder="sprint-1, backend" style="margin-bottom:0.75rem" />
+      <label for="transcript">{t.home.transcript}</label>
+      <textarea id="transcript" name="transcript" placeholder={t.home.transcriptPlaceholder}></textarea>
+      <label class="file-drop" for="file-input">
+        <input type="file" id="file-input" accept=".txt,.vtt,.srt,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm,audio/*" />
+        {t.home.fileDrop}
+      </label>
+      <div class="voice-row">
+        <button type="button" class="btn btn-outline btn-sm" id="record-btn">{t.home.record}</button>
+        <span id="record-status" class="muted" style="font-size:0.88rem"></span>
+      </div>
+      <button class="btn" type="submit" id="submit-btn" style="margin-top: 1rem; width: 100%;">
+        {t.home.analyze}
+      </button>
+    </form>
+  </section>
+</Layout>
+
+<div id="loading" class="loading-overlay hidden" aria-live="polite">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <p id="loading-message">{t.home.analyzing}</p>
+    <p class="muted" style="font-size:0.85rem;margin-top:0.5rem">{t.home.analyzingHint}</p>
+  </div>
+</div>
+
+<script>
+  import { api, escapeHtml } from '../lib/api';
+  import type { MeetingType } from '../lib/api';
+  import { t } from '../i18n/messages';
+  import { formatDate, meetingTypeLabel, transcribeError } from '../i18n';
+
+  const errorEl = document.getElementById('error')!;
+  const loadingEl = document.getElementById('loading')!;
+  const syntheticList = document.getElementById('synthetic-list')!;
+  const meetingsList = document.getElementById('meetings-list')!;
+  const searchInput = document.getElementById('search-input') as HTMLInputElement;
+  const filterType = document.getElementById('filter-type') as HTMLSelectElement;
+  const filterProject = document.getElementById('filter-project') as HTMLInputElement;
+  const filterTag = document.getElementById('filter-tag') as HTMLInputElement;
+  const loadingMessage = document.getElementById('loading-message')!;
+  const recordBtn = document.getElementById('record-btn') as HTMLButtonElement;
+  const recordStatus = document.getElementById('record-status')!;
+
+  const AUDIO_EXT = /\.(mp3|wav|m4a|aac|ogg|flac|webm)$/i;
+
+  let mediaRecorder: MediaRecorder | null = null;
+  let recordChunks: BlobPart[] = [];
+  let recordStream: MediaStream | null = null;
+
+  function showError(msg: string) {
+    errorEl.textContent = msg;
+    errorEl.classList.remove('hidden');
+  }
+
+  function setLoading(on: boolean, message: string = t.home.analyzing) {
+    loadingEl.classList.toggle('hidden', !on);
+    loadingMessage.textContent = message;
+    (document.getElementById('submit-btn') as HTMLButtonElement).disabled = on;
+    recordBtn.disabled = on;
+  }
+
+  async function transcribeFile(file: File) {
+    setLoading(true, t.home.transcribing);
+    errorEl.classList.add('hidden');
+    try {
+      const result = await api.transcribeAudio(file, file.name);
+      (document.getElementById('transcript') as HTMLTextAreaElement).value = result.transcript;
+      recordStatus.textContent = t.home.transcribeDone;
+    } catch (e) {
+      showError(String(e) || transcribeError());
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function stopRecordStream() {
+    recordStream?.getTracks().forEach((track) => track.stop());
+    recordStream = null;
+  }
+
+  recordBtn.addEventListener('click', async () => {
+    if (mediaRecorder?.state === 'recording') {
+      mediaRecorder.stop();
+      return;
+    }
+    errorEl.classList.add('hidden');
+    try {
+      recordStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordChunks = [];
+      mediaRecorder = new MediaRecorder(recordStream);
+      mediaRecorder.ondataavailable = (ev) => {
+        if (ev.data.size > 0) recordChunks.push(ev.data);
+      };
+      mediaRecorder.onstop = async () => {
+        recordBtn.textContent = t.home.record;
+        recordStatus.textContent = '';
+        stopRecordStream();
+        const blob = new Blob(recordChunks, { type: mediaRecorder?.mimeType || 'audio/webm' });
+        if (!blob.size) {
+          showError(t.home.emptyRecord);
+          return;
+        }
+        await transcribeFile(new File([blob], 'recording.webm', { type: blob.type }));
+      };
+      mediaRecorder.start();
+      recordBtn.textContent = t.home.stopRecord;
+      recordStatus.textContent = t.home.recording;
+    } catch {
+      showError(t.home.micDenied);
+      stopRecordStream();
+    }
+  });
+
+  async function loadHealth() {
+    const pills = document.getElementById('status-pills')!;
+    try {
+      const h = await api.health();
+      pills.innerHTML = `
+        <span class="pill ${h.google_api ? 'ok' : 'warn'}">${h.google_api ? t.home.geminiOk : t.home.geminiWarn}</span>
+        <span class="pill ${h.jira_configured ? 'ok' : 'warn'}">${h.jira_configured ? t.home.jiraOk : t.home.jiraWarn}</span>
+        <span class="pill ok">${t.home.sqliteOk}</span>`;
+    } catch {
+      pills.innerHTML = `<span class="pill err">${t.home.backendOffline}</span>`;
+    }
+  }
+
+  function renderMeetings(meetings: Awaited<ReturnType<typeof api.listMeetings>>) {
+    if (!meetings.length) {
+      meetingsList.innerHTML = `<p class="muted" style="grid-column:1/-1">${t.home.noMeetings}</p>`;
+      return;
+    }
+    meetingsList.innerHTML = meetings
+      .map((m) => {
+        const type = (m.meeting_type ?? 'general') as MeetingType;
+        const typeLabel = meetingTypeLabel(type);
+        const tasks = m.analysis?.tasks?.length ?? 0;
+        const snippet = (m.analysis?.summary ?? '').slice(0, 120);
+        const tags = (m.tags ?? []).map((tag) => `<span class="badge badge-type">${escapeHtml(tag)}</span>`).join(' ');
+        return `
+        <a href="/meeting/${m.id}" class="meeting-card">
+          <h3>${escapeHtml(m.title)}</h3>
+          <p class="snippet">${escapeHtml(snippet)}${snippet.length >= 120 ? '…' : ''}</p>
+          <div class="meta-row">
+            <span class="badge badge-type">${typeLabel}</span>
+            ${m.project_key ? `<span dir="ltr">${escapeHtml(m.project_key)}</span>` : ''}
+            ${tags}
+            <span>${tasks} ${t.home.tasksCount}</span>
+            <span>${formatDate(m.created_at)}</span>
+          </div>
+        </a>`;
+      })
+      .join('');
+  }
+
+  function getFilters() {
+    return {
+      q: searchInput.value,
+      type: (filterType.value || undefined) as MeetingType | undefined,
+      project: filterProject.value || undefined,
+      tag: filterTag.value || undefined,
+    };
+  }
+
+  let searchTimer: ReturnType<typeof setTimeout>;
+  async function loadMeetings() {
+    try {
+      const meetings = await api.listMeetings(getFilters());
+      renderMeetings(meetings);
+    } catch (e) {
+      showError(String(e));
+    }
+  }
+
+  [searchInput, filterType, filterProject, filterTag].forEach((el) => {
+    el.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(loadMeetings, 300);
+    });
+    el.addEventListener('change', loadMeetings);
+  });
+
+  async function loadSynthetic() {
+    try {
+      const items = await api.listSynthetic();
+      syntheticList.innerHTML = items
+        .map(
+          (item) => `
+        <div class="synthetic-card card" style="margin:0">
+          <strong>${escapeHtml(item.title.replace(/-/g, ' '))}</strong>
+          <p class="muted" style="font-size:0.82rem;margin:0.5rem 0">${item.filename}</p>
+          <button class="btn btn-sm btn-process" data-id="${item.id}">${t.home.processSample}</button>
+        </div>`
+        )
+        .join('');
+      syntheticList.querySelectorAll('.btn-process').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = (btn as HTMLButtonElement).dataset.id!;
+          btn.setAttribute('disabled', 'true');
+          setLoading(true);
+          try {
+            const meeting = await api.createFromSynthetic(id);
+            window.location.href = `/meeting/${meeting.id}`;
+          } catch (e) {
+            showError(String(e));
+            btn.removeAttribute('disabled');
+            setLoading(false);
+          }
+        });
+      });
+    } catch (e) {
+      showError(String(e));
+    }
+  }
+
+  document.getElementById('file-input')?.addEventListener('change', async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    errorEl.classList.add('hidden');
+    if (AUDIO_EXT.test(file.name) || file.type.startsWith('audio/')) {
+      await transcribeFile(file);
+      return;
+    }
+    const text = await file.text();
+    (document.getElementById('transcript') as HTMLTextAreaElement).value = text;
+  });
+
+  document.getElementById('upload-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const transcript = (document.getElementById('transcript') as HTMLTextAreaElement).value;
+    const title = (document.getElementById('title') as HTMLInputElement).value;
+    const meetingType = (document.getElementById('meeting-type') as HTMLSelectElement).value as MeetingType;
+    const projectKey = (document.getElementById('project-key') as HTMLInputElement).value;
+    const tagsRaw = (document.getElementById('tags') as HTMLInputElement).value;
+    const tags = tagsRaw.split(',').map((tag) => tag.trim()).filter(Boolean);
+    if (!transcript.trim()) {
+      showError(t.home.emptyTranscript);
+      return;
+    }
+    setLoading(true);
+    errorEl.classList.add('hidden');
+    try {
+      const meeting = await api.createMeeting(transcript, {
+        title: title || undefined,
+        meetingType,
+        projectKey,
+        tags,
+      });
+      window.location.href = /* path */ (`/meeting/${meeting.id}`);
+    } catch (err) {
+      showError(String(err));
+      setLoading(false);
+    }
+  });
+
+  loadHealth();
+  loadSynthetic();
+  loadMeetings();
+</script>
